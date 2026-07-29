@@ -1,0 +1,9 @@
+{
+  "allure": {
+    "directory": "allure-results",
+    "title": "OWASP Juice Shop — UI End-to-End Suite",
+    "links": [
+      "https://github.com/juice-shop/juice-shop/issues/{issue}"
+    ]
+  }
+}

@@ -1,0 +1,59 @@
+<Project>
+
+  <!--
+    Central Package Management. Every version in the solution is declared here exactly once;
+    project files carry <PackageReference Include="..." /> with no Version attribute.
+
+    Transitive pinning is on so that a transitive dependency cannot silently float to a version
+    nobody reviewed.
+  -->
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup Label="Browser automation">
+    <!--
+      Adaptation layer only. Note we reference Microsoft.Playwright, NOT Microsoft.Playwright.NUnit:
+      the NUnit base classes would leak IPage into every test class. See ADR-0002.
+    -->
+    <PackageVersion Include="Microsoft.Playwright" Version="1.61.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Test runner">
+    <PackageVersion Include="NUnit" Version="4.6.1" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="6.2.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+    <PackageVersion Include="NUnit.Analyzers" Version="4.11.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Configuration, logging and composition">
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.10" />
+    <PackageVersion Include="Serilog" Version="4.4.0" />
+    <PackageVersion Include="Serilog.Extensions.Logging" Version="10.0.0" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Test data">
+    <PackageVersion Include="Bogus" Version="35.6.5" />
+  </ItemGroup>
+
+  <ItemGroup Label="Reporting">
+    <PackageVersion Include="Allure.NUnit" Version="2.15.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Architecture testing">
+    <PackageVersion Include="NetArchTest.Rules" Version="1.3.2" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,45 @@
+# OWASP Juice Shop — the system under test.
+#
+# Only the SUT runs here. The test suite runs on the host and points at it, which keeps the
+# inner development loop fast and lets you attach a debugger to a failing test. See
+# docs/adr/0004-host-run-tests-against-containerised-sut.md.
+
+services:
+  juice-shop:
+    # Pinned by digest, not just tag. `latest` and `v20.1.1` have different digests despite being
+    # the same release, and a tag can in principle be re-pushed. The digest is what actually makes
+    # a run in 12 months reproduce a run today — challenge names, product data and DOM ids all
+    # change between major versions.
+    image: bkimminich/juice-shop:v20.1.1@sha256:cd58d79c5cb4d82f22fbaf616f9ff43bbd04ba630cd6b448a9ed99cf652fcebf
+    container_name: juice-shop
+    ports:
+      # Bound to loopback deliberately. This is an intentionally vulnerable application with
+      # RCE-class challenges; "3000:3000" would publish it to every host on your network.
+      - "127.0.0.1:3000:3000"
+    environment:
+      # NODE_ENV here selects a config FILE from /juice-shop/config, it is not Node's
+      # production/development switch. "e2e" resolves to the overlay mounted below, which is
+      # shallow-merged over default.yml.
+      NODE_ENV: e2e
+    volumes:
+      - ./config/e2e.yml:/juice-shop/config/e2e.yml:ro
+    healthcheck:
+      # Exec form with the bundled Node binary — the runtime image is distroless
+      # (gcr.io/distroless/nodejs24-debian13), so there is no shell, no curl and no wget. A
+      # "CMD-SHELL curl -f ..." healthcheck fails 100% of the time and leaves `--wait` hanging
+      # until timeout. Verified: /nodejs/bin/node is Node v24.17.0 and has global fetch.
+      test:
+        - CMD
+        - /nodejs/bin/node
+        - -e
+        - "fetch('http://127.0.0.1:3000/rest/admin/application-version').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      # Generous, because the app drops and re-seeds its whole SQLite database on every boot
+      # (sequelize.sync({ force: true }) then the data creator) before it starts listening.
+      start_period: 30s
+    # The documented floor is 256MB/200 millicpu; starving it makes seeding crawl and presents as
+    # a healthcheck that never goes green. No limits are set here so the container can use what it
+    # needs — this is a note for anyone tempted to add them.
+    restart: unless-stopped

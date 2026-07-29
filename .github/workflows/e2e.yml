@@ -1,0 +1,139 @@
+name: e2e
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write        # publishing the Allure report to the gh-pages branch
+  checks: write          # test-reporter's check run
+  pull-requests: write   # test summary comment
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  AUTOMATION_ENVIRONMENT: Ci
+  TEST_OUTPUT_DIR: src/JuiceShop.Automation.Definition/bin/Release/net10.0
+
+jobs:
+  test:
+    name: UI end-to-end suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Start OWASP Juice Shop
+        # --wait blocks until the compose healthcheck passes. The image ships no HEALTHCHECK of its
+        # own and takes 20-60s to seed its database, so without the healthcheck defined in
+        # docker-compose.yml this would return while the app is still starting and every test in
+        # the first fixture would race it.
+        run: docker compose up -d --wait --wait-timeout 240
+
+      - name: Build
+        run: dotnet build -c Release
+
+      # Browsers are cached against the Playwright version. The install itself is driven from the
+      # test run (Microsoft.Playwright.Program.Main), so no PowerShell is required here either.
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-1.61.0
+
+      - name: Run tests
+        # -c Release --no-build matters: a bare `dotnet test` after a Release build silently
+        # rebuilds in Debug and runs different binaries from the ones just built.
+        run: >
+          dotnet test -c Release --no-build
+          --settings .runsettings
+          --logger "trx;LogFileName=test-results.trx"
+
+      - name: Juice Shop logs
+        if: failure()
+        run: docker compose logs --no-color juice-shop
+
+      # Every reporting step is if: always(). Without it a failing `dotnet test` short-circuits the
+      # job and nothing is uploaded — precisely when the trace is most needed.
+      - name: Upload failure artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-artifacts
+          path: |
+            ${{ env.TEST_OUTPUT_DIR }}/artifacts/traces/
+            ${{ env.TEST_OUTPUT_DIR }}/artifacts/screenshots/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Publish test results
+        if: always()
+        uses: dorny/test-reporter@v3
+        with:
+          name: NUnit results
+          path: artifacts/test-results/*.trx
+          reporter: dotnet-trx
+          fail-on-error: false
+
+      # ---- Allure report on GitHub Pages -------------------------------------------------
+      # Requires Settings -> Pages -> Source = "Deploy from a branch" -> gh-pages -> / (root).
+      # Until that is enabled the two steps below simply publish a branch nobody reads.
+
+      - name: Fetch existing report history
+        if: always()
+        uses: actions/checkout@v7
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Build Allure report
+        if: always()
+        uses: simple-elf/allure-report-action@v1.15
+        with:
+          allure_results: ${{ env.TEST_OUTPUT_DIR }}/allure-results
+          gh_pages: gh-pages
+          allure_report: allure-report
+          allure_history: allure-history
+          keep_reports: 20
+
+      - name: Publish report to GitHub Pages
+        if: always() && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-history
+
+  lint:
+    name: Format and analysers
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      # Two complementary checks. `dotnet format` catches whitespace and using-ordering drift from
+      # an IDE that ignored .editorconfig; the build catches analyser and code-style violations,
+      # which are errors here because Directory.Build.props sets TreatWarningsAsErrors.
+      - name: Verify formatting
+        run: dotnet format --verify-no-changes --severity warn
+
+      - name: Build with analysers
+        run: dotnet build -c Release

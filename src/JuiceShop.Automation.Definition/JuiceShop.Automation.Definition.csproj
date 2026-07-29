@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    DEFINITION — ISTQB CTAL-TAE 2016 section 3.1.3 / v2.0 "test scripts" + "business logic".
+
+    Holds both halves of what the syllabus puts in this layer:
+      Flows/  = test library components, i.e. the v2.0 section 3.1.5 "flow model pattern" facade
+      Tests/  = the test cases themselves
+
+    This is the test project, so it is also where the architecture rules are asserted. They run in
+    the same `dotnet test` as everything else, which means the layering is tested rather than
+    merely documented.
+  -->
+
+  <PropertyGroup>
+    <RootNamespace>JuiceShop.Automation.Definition</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- Explicitly stay on VSTest: Microsoft.Testing.Platform changes logger/adapter wiring. -->
+    <EnableNUnitRunner>false</EnableNUnitRunner>
+
+    <!--
+      `dotnet test` does not discover a .runsettings file on its own. Pointing at it here means the
+      documented command is the real one: a bare `dotnet test`, an IDE run and the CI invocation all
+      get the same worker count and results directory, instead of only the runs that remembered to
+      pass the settings flag explicitly.
+    -->
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory)..\..\.runsettings</RunSettingsFilePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="NUnit.Analyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="NetArchTest.Rules" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JuiceShop.Automation.Execution\JuiceShop.Automation.Execution.csproj" />
+    <ProjectReference Include="..\JuiceShop.Automation.Adaptation\JuiceShop.Automation.Adaptation.csproj" />
+    <ProjectReference Include="..\JuiceShop.Automation.Utility\JuiceShop.Automation.Utility.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Microsoft.NET.Sdk does not copy these to the output directory automatically the way the Web
+      SDK does. Without this, IConfiguration silently binds nothing and Allure silently ignores
+      its config — both of which present as baffling null-reference failures at runtime.
+    -->
+    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="appsettings.*.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="allureConfig.json" CopyToOutputDirectory="Always" />
+  </ItemGroup>
+
+</Project>

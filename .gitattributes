@@ -1,0 +1,16 @@
+# Normalise all text to LF in the repository and on checkout. Without this, a Windows clone with
+# core.autocrlf=true rewrites every file to CRLF, `dotnet format --verify-no-changes` fails in CI
+# against the .editorconfig setting, and the diff noise buries real changes.
+* text=auto eol=lf
+
+# Shell scripts must be LF or they will not execute on Linux or macOS.
+*.sh text eol=lf
+
+# Binary assets — never touch these.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.pdf binary

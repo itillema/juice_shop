@@ -1,0 +1,38 @@
+# Juice Shop configuration overlay for automated testing.
+#
+# Mounted to /juice-shop/config/e2e.yml and selected with NODE_ENV=e2e. node-config shallow-merges
+# this over default.yml, so only the keys that differ need to appear.
+#
+# Every setting below exists to remove a specific source of flakiness, not to make the app easier
+# to pass. The application logic under test is unchanged.
+
+application:
+  domain: juice-sh.op
+
+  # Keep the data seed deterministic. Random fake users shift auto-increment IDs, which in turn
+  # shift Basket IDs — anything that assumed a stable ID starts failing for no visible reason.
+  numberOfRandomFakeUsers: 0
+
+  # Needed by the readiness probe, which asserts on /rest/admin/application-version.
+  showVersionNumber: true
+
+  welcomeBanner:
+    # An Angular Material dialog that traps focus and intercepts the first click of every session.
+    # The session bootstrapper also sets the dismissal cookie; this is belt and braces.
+    showOnFirstStart: false
+
+challenges:
+  # Ordinary test actions solve challenges by accident — a search string containing a quote is
+  # enough. Each solve raises a mat-snackbar toast that overlays the bottom of the viewport and
+  # swallows clicks, which produces failures that look random and are not.
+  showSolvedNotifications: false
+  showHints: false
+
+  # Left at the default "auto", which auto-detects the container and disables the genuinely
+  # destructive challenges. Do NOT set this to "disabled" (which is what NODE_ENV=unsafe and
+  # NODE_ENV=ctf do) just to make more of the app reachable.
+  safetyMode: auto
+
+hackingInstructor:
+  # Draws an animated attention-grabbing highlight over elements it wants you to click.
+  isEnabled: false

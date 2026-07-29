@@ -1,0 +1,34 @@
+# Build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+
+# Test + automation artifacts
+allure-results/
+allure-report/
+allure-history/
+playwright-traces/
+screenshots/
+videos/
+logs/
+*.trx
+TestResults/
+
+# Playwright auth state — contains live session cookies and tokens
+.auth/
+**/playwright/.auth/
+
+# IDE and local tooling
+.vs/
+.vscode/
+.idea/
+.claude
+.claude/
+*.user
+*.suo
+
+# OS
+.DS_Store
+Thumbs.db

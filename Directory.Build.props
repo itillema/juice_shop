@@ -1,0 +1,49 @@
+<Project>
+
+  <!--
+    Repo-wide build settings. Every project in the solution inherits these, so that the
+    per-project .csproj files stay short enough to read at a glance during review.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- A warning that nobody is forced to fix is a warning that nobody fixes. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>Recommended</AnalysisMode>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Deterministic builds + source-linked paths when running under CI. -->
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CA1848;CA1873;CA2007</NoWarn>
+    <!--
+      These three are correct advice for hot-path library code and wrong for a test framework.
+
+      CA1848 (use LoggerMessage delegates) and CA1873 (guard potentially expensive log arguments)
+      both optimise for logging in a tight loop. Here logging happens a handful of times per test
+      and is always enabled, so the guard clauses would be pure noise obscuring the intent.
+
+      CA2007 (call ConfigureAwait) applies to library code that might run under a synchronization
+      context. A test host has none, so every await would carry a ConfigureAwait(false) that
+      changes nothing.
+    -->
+  </PropertyGroup>
+
+  <!--
+    Microsoft.Testing.Platform is deliberately NOT enabled. Under MTP the Playwright settings
+    provider is not loaded and NUnit's VSTest-based logger/adapter wiring changes. See
+    docs/adr/0002-hand-rolled-test-base-over-pagetest.md.
+  -->
+
+</Project>
