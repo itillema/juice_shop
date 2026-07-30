@@ -1,5 +1,8 @@
-using JuiceShop.Automation.Adaptation.Contracts;
-using JuiceShop.Automation.Utility.TestData;
+using JuiceShop.Automation.Definition.Pages;
+using JuiceShop.Automation.Definition.TestData;
+using JuiceShop.Automation.Utility.Configuration;
+using JuiceShop.Automation.Utility.Driver;
+using Microsoft.Extensions.Options;
 
 namespace JuiceShop.Automation.Definition.Flows;
 
@@ -8,31 +11,46 @@ namespace JuiceShop.Automation.Definition.Flows;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This is ISTQB CTAL-TAE v2.0 §3.1.5's <em>flow model pattern</em>: "an additional facade over the
-/// page object models, which stores all the user actions that interact with the page objects".
-/// The double facade is what lets a test read as a sequence of business intentions while every
-/// detail of how those intentions reach the browser stays one layer down.
+/// A flow is a user journey expressed once, in the vocabulary of the shop rather than of the
+/// browser. It composes page objects, which own locators and atomic interactions; the double facade
+/// is what lets a test read as a sequence of intentions while every detail of how those intentions
+/// reach the browser stays one level down.
 /// </para>
 /// <para>
-/// The action methods return <see cref="ShopFlow"/> so journeys chain. Assertions are reached
-/// through the facades on this type rather than by exposing the Adaptation page contracts directly,
-/// so that a test case never names a type from the Adaptation layer.
+/// This type builds the page objects itself from the session's page rather than resolving them from
+/// the container. Page objects are per-session and would need a scope the container has no way to
+/// model, and keeping them out of the container is what allows them — and their contracts — to stay
+/// internal to this assembly. That internal visibility is the mechanism that makes it impossible for
+/// a test case to reach a locator.
 /// </para>
 /// </remarks>
 public sealed class ShopFlow
 {
-    private readonly IBrowserSession _session;
+    private readonly LoginPage _login;
+    private readonly RegistrationPage _registration;
+    private readonly NavigationBar _navigation;
+    private readonly ProductCatalogPage _catalog;
+    private readonly BasketPage _basket;
 
-    public ShopFlow(IBrowserSession session)
+    /// <summary>Builds the flow facade over a browsing session.</summary>
+    public ShopFlow(IBrowserSession session, IOptions<AutomationSettings> settings)
     {
         ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(settings);
 
-        _session = session;
+        var page = session.Page;
+        var expectTimeout = settings.Value.Browser.ExpectTimeoutMilliseconds;
 
-        Basket = new BasketAssertions(session.Basket);
-        Catalog = new CatalogAssertions(session.Catalog);
-        Navigation = new NavigationAssertions(session.Navigation);
-        LoginPage = new LoginAssertions(session.Login);
+        _login = new LoginPage(page, expectTimeout);
+        _registration = new RegistrationPage(page, expectTimeout);
+        _navigation = new NavigationBar(page, expectTimeout);
+        _catalog = new ProductCatalogPage(page, expectTimeout);
+        _basket = new BasketPage(page, expectTimeout);
+
+        Basket = new BasketAssertions(_basket);
+        Catalog = new CatalogAssertions(_catalog);
+        Navigation = new NavigationAssertions(_navigation);
+        LoginPage = new LoginAssertions(_login);
     }
 
     /// <summary>Assertions and actions against the shopping basket.</summary>
@@ -56,17 +74,17 @@ public sealed class ShopFlow
     /// </remarks>
     public async Task<ShopFlow> LoginAsAsync(Credentials credentials)
     {
-        await _session.Login.OpenAsync();
-        await _session.Login.SignInAsync(credentials);
-        await _session.Login.WaitForSignInToCompleteAsync();
+        await _login.OpenAsync();
+        await _login.SignInAsync(credentials);
+        await _login.WaitForSignInToCompleteAsync();
         return this;
     }
 
     /// <summary>Attempts a sign-in without expecting it to succeed.</summary>
     public async Task<ShopFlow> AttemptLoginAsync(Credentials credentials)
     {
-        await _session.Login.OpenAsync();
-        await _session.Login.SignInAsync(credentials);
+        await _login.OpenAsync();
+        await _login.SignInAsync(credentials);
         return this;
     }
 
@@ -75,13 +93,13 @@ public sealed class ShopFlow
     {
         ArgumentNullException.ThrowIfNull(registration);
 
-        await _session.Registration.OpenAsync();
-        await _session.Registration.RegisterAsync(registration);
+        await _registration.OpenAsync();
+        await _registration.RegisterAsync(registration);
 
-        await _session.Login.OpenAsync();
-        await _session.Login.SignInAsync(
+        await _login.OpenAsync();
+        await _login.SignInAsync(
             new Credentials(registration.Email, registration.Password, "Newly registered customer"));
-        await _session.Login.WaitForSignInToCompleteAsync();
+        await _login.WaitForSignInToCompleteAsync();
 
         return this;
     }
@@ -89,15 +107,15 @@ public sealed class ShopFlow
     /// <summary>Signs the current user out.</summary>
     public async Task<ShopFlow> LogoutAsync()
     {
-        await _session.Navigation.SignOutAsync();
+        await _navigation.SignOutAsync();
         return this;
     }
 
     /// <summary>Searches the catalogue.</summary>
     public async Task<ShopFlow> SearchAsync(string searchTerm)
     {
-        await _session.Catalog.OpenAsync();
-        await _session.Catalog.SearchAsync(searchTerm);
+        await _catalog.OpenAsync();
+        await _catalog.SearchAsync(searchTerm);
         return this;
     }
 
@@ -105,21 +123,21 @@ public sealed class ShopFlow
     /// <returns>The product that was added, so the test can assert against it by name.</returns>
     public async Task<Product> AddFirstResultToBasketAsync()
     {
-        var product = await _session.Catalog.AddFirstResultToBasketAsync();
+        var product = await _catalog.AddFirstResultToBasketAsync();
         return new Product(product.Name, product.Price);
     }
 
     /// <summary>Adds a named product to the basket from the catalogue.</summary>
     public async Task<ShopFlow> AddToBasketAsync(string productName)
     {
-        await _session.Catalog.AddToBasketAsync(productName);
+        await _catalog.AddToBasketAsync(productName);
         return this;
     }
 
     /// <summary>Opens the basket.</summary>
     public async Task<ShopFlow> OpenBasketAsync()
     {
-        await _session.Basket.OpenAsync();
+        await _basket.OpenAsync();
         return this;
     }
 }

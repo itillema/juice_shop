@@ -1,35 +1,65 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    EXECUTION — ISTQB CTAL-TAE 2016 section 3.1.4.
+    EXECUTION — the test cases, and nothing else.
 
-    Note this layer is deliberately more than "the test runner". Section 3.1.4 also requires
-    setting up and tearing down the SUT, configuring and parameterising the test setup,
-    instrumenting for filtered logging, and validating/collecting results — none of which NUnit
-    provides. That is what SutReadinessGate, GlobalSetup and ArtifactCollector are.
+    This is the runnable test project: fixtures, categories, the assembly-level setup that starts the
+    run, and the architecture rules. It is also the composition root, which is the one place a
+    solution should know about every layer at once — GlobalSetup binds the Adaptation adapters and
+    the Definition services into the container the Utility layer builds.
 
-    No Microsoft.Playwright reference here: artifact capture goes through the technology-free
-    IBrowserSession contract from the Adaptation layer.
+    A test here reads as business intent. It has no locators, no waits and no browser types, because
+    everything that could supply them lives behind the flows in Definition.
   -->
 
   <PropertyGroup>
     <RootNamespace>JuiceShop.Automation.Execution</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- Explicitly stay on VSTest: Microsoft.Testing.Platform changes logger/adapter wiring. -->
+    <EnableNUnitRunner>false</EnableNUnitRunner>
+
+    <!--
+      `dotnet test` does not discover a .runsettings file on its own. Pointing at it here means the
+      documented command is the real one: a bare `dotnet test`, an IDE run and the CI invocation all
+      get the same worker count and results directory, instead of only the runs that remembered to
+      pass the settings flag explicitly.
+    -->
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory)..\..\.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="NUnit.Analyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="NetArchTest.Rules" />
     <PackageReference Include="Allure.NUnit" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-    <PackageReference Include="Microsoft.Extensions.Logging" />
-    <PackageReference Include="Microsoft.Extensions.Options" />
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The composition root references every layer. Nothing else in the solution does. -->
+    <ProjectReference Include="..\JuiceShop.Automation.Definition\JuiceShop.Automation.Definition.csproj" />
     <ProjectReference Include="..\JuiceShop.Automation.Adaptation\JuiceShop.Automation.Adaptation.csproj" />
     <ProjectReference Include="..\JuiceShop.Automation.Utility\JuiceShop.Automation.Utility.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Microsoft.NET.Sdk does not copy these to the output directory automatically the way the Web
+      SDK does. Without this, IConfiguration silently binds nothing and Allure silently ignores its
+      config — both of which present as baffling null-reference failures at runtime.
+
+      They live in this project rather than in Utility because configuration is read relative to the
+      test binary, and this is the project that produces it.
+    -->
+    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="appsettings.*.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="allureConfig.json" CopyToOutputDirectory="Always" />
   </ItemGroup>
 
 </Project>

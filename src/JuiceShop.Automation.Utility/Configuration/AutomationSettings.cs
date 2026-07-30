@@ -101,6 +101,19 @@ public sealed class BrowserSettings
     /// which already ship browsers at <c>/ms-playwright</c>.
     /// </summary>
     public bool SkipBrowserInstall { get; init; }
+
+    /// <summary>
+    /// Cookies seeded into every new session before the first navigation.
+    /// </summary>
+    /// <remarks>
+    /// Driven from configuration rather than hard-coded so that the driver stays free of any
+    /// knowledge of the application under test. The values that matter for Juice Shop dismiss the
+    /// welcome dialog and the cookie banner — both of which sit over the page and swallow the first
+    /// click of a session — and pin the language, without which the app may resolve a different
+    /// locale and every text-based selector fails in a way that looks machine-specific.
+    /// </remarks>
+    public IDictionary<string, string> SessionCookies { get; init; } =
+        new Dictionary<string, string>(StringComparer.Ordinal);
 }
 
 /// <summary>Failure-artifact collection policy.</summary>

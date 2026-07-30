@@ -1,7 +1,7 @@
 using JuiceShop.Automation.Utility.Artifacts;
 using JuiceShop.Automation.Utility.Configuration;
+using JuiceShop.Automation.Utility.Driver;
 using JuiceShop.Automation.Utility.Logging;
-using JuiceShop.Automation.Utility.TestData;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -11,16 +11,11 @@ using Serilog.Extensions.Logging;
 namespace JuiceShop.Automation.Utility.DependencyInjection;
 
 /// <summary>
-/// Registers the Utility layer: configuration, logging and test data.
+/// Registers the framework: configuration, logging, the browser driver and artifact capture.
 /// </summary>
-/// <remarks>
-/// Each layer owns its own registration extension and the Execution layer composes them. That
-/// keeps the composition root honest — a layer cannot be wired into the container without its
-/// own project being referenced, so the dependency graph in the .csproj files is the real one.
-/// </remarks>
 public static class UtilityServiceCollectionExtensions
 {
-    /// <summary>Adds configuration binding, logging and test-data services.</summary>
+    /// <summary>Adds the framework services.</summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configuration">Configuration root, normally from <see cref="ConfigurationFactory"/>.</param>
     /// <param name="baseDirectory">Test binary directory, used to resolve relative artifact paths.</param>
@@ -58,7 +53,10 @@ public static class UtilityServiceCollectionExtensions
 
         services.AddLogging();
 
-        services.AddSingleton<RegistrationDataFactory>();
+        // One browser for the run; one context per test. See ISessionFactory.
+        services.AddSingleton<ISessionFactory, PlaywrightSessionFactory>();
+
+        services.AddScoped<ArtifactCollector>();
 
         return services;
     }

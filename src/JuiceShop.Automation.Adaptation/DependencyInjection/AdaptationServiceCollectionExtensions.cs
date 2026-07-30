@@ -1,24 +1,23 @@
-using JuiceShop.Automation.Adaptation.Contracts;
-using JuiceShop.Automation.Adaptation.Playwright;
+using JuiceShop.Automation.Adaptation.Sut;
+using JuiceShop.Automation.Utility.Sut;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace JuiceShop.Automation.Adaptation.DependencyInjection;
 
-/// <summary>Registers the Adaptation layer.</summary>
+/// <summary>Registers the Adaptation layer's integrations.</summary>
+/// <remarks>
+/// Each layer owns its own registration extension and the composition root calls them. That keeps
+/// the wiring honest — a layer cannot appear in the container without its project being referenced
+/// by the composition root, so the reference graph in the .csproj files is the real one.
+/// </remarks>
 public static class AdaptationServiceCollectionExtensions
 {
-    /// <summary>
-    /// Adds the session factory. The concrete Playwright implementation stays internal — callers
-    /// only ever resolve <see cref="ISessionFactory"/>.
-    /// </summary>
+    /// <summary>Binds the ports declared in the Utility layer to their concrete adapters.</summary>
     public static IServiceCollection AddAdaptationLayer(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        // Singleton because it owns the one browser process for the run. Sessions themselves are
-        // created explicitly per test rather than resolved, because creating one is asynchronous
-        // and DI has no async activation.
-        services.AddSingleton<ISessionFactory, PlaywrightSessionFactory>();
+        services.AddSingleton<ISutReadinessGate, HttpSutReadinessGate>();
 
         return services;
     }

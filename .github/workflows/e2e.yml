@@ -19,7 +19,7 @@ env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   AUTOMATION_ENVIRONMENT: Ci
-  TEST_OUTPUT_DIR: src/JuiceShop.Automation.Definition/bin/Release/net10.0
+  TEST_OUTPUT_DIR: src/JuiceShop.Automation.Execution/bin/Release/net10.0
 
 jobs:
   test:

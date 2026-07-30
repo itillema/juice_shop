@@ -9,8 +9,9 @@
     <File Path="docker-compose.yml" />
     <File Path="README.md" />
   </Folder>
+  <!-- Listed bottom-up, in dependency order. -->
   <Project Path="src/JuiceShop.Automation.Utility/JuiceShop.Automation.Utility.csproj" />
   <Project Path="src/JuiceShop.Automation.Adaptation/JuiceShop.Automation.Adaptation.csproj" />
-  <Project Path="src/JuiceShop.Automation.Execution/JuiceShop.Automation.Execution.csproj" />
   <Project Path="src/JuiceShop.Automation.Definition/JuiceShop.Automation.Definition.csproj" />
+  <Project Path="src/JuiceShop.Automation.Execution/JuiceShop.Automation.Execution.csproj" />
 </Solution>

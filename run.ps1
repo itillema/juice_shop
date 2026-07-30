@@ -61,7 +61,7 @@ if ($testExitCode -eq 0) {
     Write-Host 'All tests passed.' -ForegroundColor Green
 } else {
     Write-Host 'Tests failed. Traces and screenshots:' -ForegroundColor Yellow
-    Write-Host '  src\JuiceShop.Automation.Definition\bin\Release\net10.0\artifacts\'
+    Write-Host '  src\JuiceShop.Automation.Execution\bin\Release\net10.0\artifacts\'
     Write-Host '  View a trace by dragging the .zip onto https://trace.playwright.dev'
 }
 

@@ -45,7 +45,7 @@ if [[ $TEST_EXIT -eq 0 ]]; then
     echo "All tests passed."
 else
     echo "Tests failed. Traces and screenshots:"
-    echo "  src/JuiceShop.Automation.Definition/bin/Release/net10.0/artifacts/"
+    echo "  src/JuiceShop.Automation.Execution/bin/Release/net10.0/artifacts/"
     echo "  View a trace by dragging the .zip onto https://trace.playwright.dev"
 fi
 

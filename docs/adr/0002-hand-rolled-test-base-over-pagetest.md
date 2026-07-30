@@ -26,8 +26,9 @@ tells you to write the `Tracing.StartAsync` / `StopAsync` teardown yourself eith
 ## Decision
 
 Reference `Microsoft.Playwright` only — not `Microsoft.Playwright.NUnit` — and own the lifecycle in
-the Execution layer: `PlaywrightSessionFactory` holds one `IPlaywright` and one `IBrowser` for the
-run; `E2ETestBase` takes a fresh `IBrowserContext` per test.
+the Utility layer, which is where the driver belongs: `PlaywrightSessionFactory` holds one
+`IPlaywright` and one `IBrowser` for the run, and `E2ETestBase` takes a fresh `IBrowserContext` per
+test.
 
 ## What is actually given up
 
@@ -41,7 +42,8 @@ run; `E2ETestBase` takes a fresh `IBrowserContext` per test.
 
 ## Consequences
 
-- No Playwright type appears above the Adaptation layer, and `ArchitectureTests` enforces it.
+- No Playwright type reaches the test cases. Page objects in Definition drive the browser through
+  the session; everything above them is free of it, and `ArchitectureTests` enforces that.
 - Artifact policy is explicit and controllable: trace always started, written only on failure.
 - Slightly more lifecycle code to own, and the constraint that `[SetUp]` ordering between base and
   derived classes must be understood (NUnit runs base first, which `JuiceShopTest` relies on).
