@@ -39,6 +39,19 @@ if ($LASTEXITCODE -ne 0) {
     throw "Juice Shop did not become healthy. Check 'docker compose logs juice-shop'."
 }
 
+Write-Host '==> Checking for source files hidden by .gitignore' -ForegroundColor Cyan
+# CI cannot run this check: an ignored file is never checked out, so there is nothing for it to
+# find. It only works here, where the files still exist on disk. MSBuild does not read .gitignore
+# either, so without this the build below happily compiles a file CI will never see. See the header
+# of .gitignore for how that played out.
+$shadowed = git ls-files --others --ignored --exclude-standard -- 'src/*' `
+    ':(exclude)src/*/bin/*' ':(exclude)src/*/obj/*'
+if ($shadowed) {
+    Write-Host 'These files exist on disk but .gitignore excludes them. They will never reach CI:' -ForegroundColor Red
+    $shadowed | ForEach-Object { Write-Host "  $_"; git check-ignore -v -- $_ }
+    throw 'Anchor the offending .gitignore pattern with a leading slash before continuing.'
+}
+
 Write-Host '==> Building' -ForegroundColor Cyan
 dotnet build -c Release
 if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }

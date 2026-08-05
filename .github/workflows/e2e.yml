@@ -43,6 +43,7 @@ jobs:
         run: docker compose up -d --wait --wait-timeout 240
 
       - name: Build
+        id: build
         run: dotnet build -c Release
 
       # Browsers are cached against the Playwright version. The install itself is driven from the
@@ -54,21 +55,40 @@ jobs:
           key: playwright-${{ runner.os }}-1.61.0
 
       - name: Run tests
+        id: tests
         # -c Release --no-build matters: a bare `dotnet test` after a Release build silently
         # rebuilds in Debug and runs different binaries from the ones just built.
+        #
+        # --results-directory is explicit on purpose. .runsettings sets a relative ResultsDirectory,
+        # which VSTest resolves against the .runsettings file's own directory. That happens to equal
+        # the workspace here — but "happens to equal" is how the last silent CI failure started. The
+        # CLI flag overrides it; local runs keep the relative default.
         run: >
           dotnet test -c Release --no-build
           --settings .runsettings
+          --results-directory "${{ github.workspace }}/artifacts/test-results"
           --logger "trx;LogFileName=test-results.trx"
 
       - name: Juice Shop logs
         if: failure()
         run: docker compose logs --no-color juice-shop
 
-      # Every reporting step is if: always(). Without it a failing `dotnet test` short-circuits the
-      # job and nothing is uploaded — precisely when the trace is most needed.
+      # The reporting tail below used to be blanket `if: always()`, which meant a build failure
+      # produced four red steps — "no test report files were found", a failed Allure generate, and a
+      # gh-pages push of an empty directory — burying the one error that mattered. Each step is now
+      # gated on the artifact it actually consumes, so it goes grey rather than red when there is
+      # nothing to report.
+      #
+      # `!cancelled()` rather than `always()`: concurrency.cancel-in-progress cancels superseded
+      # runs, and one of those must not half-publish Pages. A failing `dotnet test` is not
+      # "cancelled", so the original intent — traces survive a red test run — is preserved.
+      # The ${{ }} wrapper is mandatory on any `if:` starting with `!`, or YAML parses it as a tag.
+
+      # Deliberately NOT gated on the tests passing — a failing run is exactly when the trace is
+      # wanted. Gated only on the build having produced binaries; with no build there is nothing to
+      # upload and the step is pure noise.
       - name: Upload failure artifacts
-        if: always()
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         uses: actions/upload-artifact@v7
         with:
           name: playwright-artifacts
@@ -79,7 +99,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Publish test results
-        if: always()
+        if: ${{ !cancelled() && hashFiles('artifacts/test-results/*.trx') != '' }}
         uses: dorny/test-reporter@v3
         with:
           name: NUnit results
@@ -88,11 +108,15 @@ jobs:
           fail-on-error: false
 
       # ---- Allure report on GitHub Pages -------------------------------------------------
-      # Requires Settings -> Pages -> Source = "Deploy from a branch" -> gh-pages -> / (root).
-      # Until that is enabled the two steps below simply publish a branch nobody reads.
+      # The gh-pages branch is created by the publish step on the first successful main run, and it
+      # has to exist before it appears in the Pages source dropdown. So enable
+      # Settings -> Pages -> Source = "Deploy from a branch" -> gh-pages -> / (root) AFTER that
+      # run, not before.
 
       - name: Fetch existing report history
-        if: always()
+        # Expected to fail on the very first run — gh-pages does not exist yet. The report action
+        # mkdir -p's the directory itself, so a missing history is harmless.
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         uses: actions/checkout@v7
         continue-on-error: true
         with:
@@ -100,7 +124,10 @@ jobs:
           path: gh-pages
 
       - name: Build Allure report
-        if: always()
+        id: allure
+        # This action does not guard its allure_results input: `allure generate` fails outright if
+        # the directory is missing, which is what happened when the build failed and no test ran.
+        if: ${{ !cancelled() && hashFiles(format('{0}/allure-results/*-result.json', env.TEST_OUTPUT_DIR)) != '' }}
         uses: simple-elf/allure-report-action@v1.15
         with:
           allure_results: ${{ env.TEST_OUTPUT_DIR }}/allure-results
@@ -110,7 +137,10 @@ jobs:
           keep_reports: 20
 
       - name: Publish report to GitHub Pages
-        if: always() && github.ref == 'refs/heads/main'
+        # Pushing an empty publish_dir is what produced "src refspec gh-pages does not match any":
+        # the action finds nothing to commit, never creates the local ref, then pushes a branch that
+        # does not exist.
+        if: ${{ !cancelled() && github.ref == 'refs/heads/main' && steps.allure.outcome == 'success' }}
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -123,6 +153,34 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+
+      # After checkout an ignored source file simply is not present, so the obvious check —
+      # `git ls-files --others --ignored` — finds nothing and passes vacuously. It CANNOT detect the
+      # bug that broke this workflow. This asks the inverse question: of the files that ARE
+      # committed, would .gitignore have excluded any of them?
+      #
+      # -c core.ignorecase=true is not optional. A bare `artifacts/` matched the source folder
+      # `Artifacts/` only because a Windows clone has core.ignorecase=true; this ubuntu runner
+      # defaults to false and the match does not happen. Without the override this check is a green
+      # light that guarantees nothing.
+      #
+      # --no-index is not optional either: check-ignore skips tracked paths without it, and every
+      # path fed in here is tracked.
+      - name: Guard against .gitignore shadowing committed source
+        shell: bash
+        run: |
+          # `shell: bash` sets -eo pipefail, and check-ignore exits 1 when nothing matches — which
+          # is the success case here. `|| true` keeps that from aborting the step.
+          shadowed=$(git ls-files -- 'src/*' '.github/*' \
+            | git -c core.ignorecase=true check-ignore --no-index --stdin --verbose || true)
+          if [ -n "$shadowed" ]; then
+            echo "::error::.gitignore matches files that are committed. On a case-insensitive"
+            echo "::error::filesystem these can be dropped from a clone and CI will fail to build."
+            echo "::error::Anchor the offending pattern with a leading slash."
+            echo "$shadowed"
+            exit 1
+          fi
+          echo "No committed source file is matched by .gitignore."
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v6

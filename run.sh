@@ -28,6 +28,20 @@ echo "==> Starting OWASP Juice Shop"
 # docker-compose.yml it would only wait for "running", which is ~30s too early.
 docker compose up -d --wait --wait-timeout 240
 
+echo "==> Checking for source files hidden by .gitignore"
+# CI cannot run this check: an ignored file is never checked out, so there is nothing for it to
+# find. It only works here, where the files still exist on disk. MSBuild does not read .gitignore
+# either, so without this the build below happily compiles a file CI will never see. See the header
+# of .gitignore for how that played out.
+shadowed=$(git ls-files --others --ignored --exclude-standard -- 'src/*' \
+    ':(exclude)src/*/bin/*' ':(exclude)src/*/obj/*')
+if [[ -n "$shadowed" ]]; then
+    echo "These files exist on disk but .gitignore excludes them. They will never reach CI:" >&2
+    echo "$shadowed" >&2
+    echo "Anchor the offending .gitignore pattern with a leading slash before continuing." >&2
+    exit 1
+fi
+
 echo "==> Building"
 dotnet build -c Release
 
