@@ -1,20 +1,37 @@
-# Build output
+# ---------------------------------------------------------------------------------------------
+# Anchoring rules — read before adding a pattern.
+#
+# A pattern with no leading slash and no interior slash matches at EVERY depth, and on Windows
+# core.ignorecase=true it matches case-insensitively too. That combination is how a bare
+# `artifacts/` silently swallowed src/JuiceShop.Automation.Utility/Artifacts/ — a SOURCE folder.
+# Its two files were never committed on any branch, `git status` stayed clean, MSBuild does not
+# read .gitignore so local builds passed, and the only symptom was CS0246 in CI.
+#
+# Rule: leave a pattern unanchored only if it must genuinely match at every depth. Anything that
+# is a repo-root output gets a leading slash.
+# ---------------------------------------------------------------------------------------------
+
+# Build output. Unanchored on purpose — one per project. `bin/` already covers bin/Debug,
+# bin/Release, and the whole runtime artifact tree the tests write underneath it:
+# bin/<cfg>/net10.0/artifacts/{traces,screenshots,videos,logs} and .../allure-results.
 bin/
 obj/
-[Dd]ebug/
-[Rr]elease/
-artifacts/
 
-# Test + automation artifacts
-allure-results/
-allure-report/
-allure-history/
-playwright-traces/
-screenshots/
-videos/
-logs/
+# Repo-root test output. `artifacts/test-results` is .runsettings' ResultsDirectory, which VSTest
+# resolves relative to the directory holding the .runsettings file — this one, the repo root.
+/artifacts/
 *.trx
+
+# VSTest's fallback results directory, created next to whichever project ran. Left unanchored
+# because it can appear under any project.
 TestResults/
+
+# Allure. Raw results live under bin/ and are already covered. These only ever appear at the repo
+# root — from `allure generate` locally, or the report action and history checkout in CI.
+/allure-results/
+/allure-report/
+/allure-history/
+/gh-pages/
 
 # Playwright auth state — contains live session cookies and tokens
 .auth/
