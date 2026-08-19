@@ -71,10 +71,19 @@ This is resolved with a port and an adapter:
 - `GlobalSetup` **binds them in Execution** — the composition root, the one place that legitimately
   knows about every layer at once.
 
-`AutomationRuntime.StartAsync` therefore resolves the gate from the container and awaits it, without
-Utility ever referencing Adaptation. The same seam is how an API client or a database fixture would
-be introduced later: declare the port where it is needed, implement it in Adaptation, bind it at the
+`AutomationRuntime` therefore resolves the gate from the container and awaits it, without Utility
+ever referencing Adaptation. The same seam is how an API client or a database fixture would be
+introduced later: declare the port where it is needed, implement it in Adaptation, bind it at the
 top.
+
+It awaits the gate on **first session use** rather than during assembly setup. The composition root
+is a namespace-less `[SetUpFixture]`, so its `[OneTimeSetUp]` runs before *every* fixture — awaiting
+the gate there charged the SUT startup cost to tests that never touch the application, and made the
+architecture rules fail after a 150s readiness timeout on any machine without the container running.
+`AutomationRuntime.StartAsync` now builds only configuration and the container;
+`EnsureBrowsingAsync` holds the gate and the browser launch behind a `Lazy<Task<ISessionFactory>>`
+that `E2ETestBase` triggers. Deriving from that base is what declares a test needs a live
+application.
 
 The alternative — putting the HTTP call directly into the lifecycle code — would drag an external
 protocol into the framework layer and make Utility unusable against a SUT reached any other way.

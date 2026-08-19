@@ -54,7 +54,12 @@ public abstract class E2ETestBase
 
         _artifacts = _scope.ServiceProvider.GetRequiredService<ArtifactCollector>();
 
-        Session = await AutomationRuntime.SessionFactory.CreateSessionAsync();
+        // The first browser test of the run pays for the SUT readiness check and the browser launch;
+        // the rest get the already-initialised factory. Deriving from this class is what declares a
+        // test needs a live application, so this is the right place to charge that cost.
+        var sessionFactory = await AutomationRuntime.EnsureBrowsingAsync();
+
+        Session = await sessionFactory.CreateSessionAsync();
 
         await _artifacts.BeginAsync(Session, CurrentTestName);
         await Session.OpenApplicationAsync();

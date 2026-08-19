@@ -54,3 +54,10 @@ contract exposes internal record types. The type system already forbids it.
   stays covered.
 - Rules must be maintained alongside intentional architecture changes — which is the point, since it
   forces the change to be intentional.
+- "No browser and no SUT" is a property of the **run lifecycle**, not of these tests. The composition
+  root is a namespace-less `[SetUpFixture]`, so its `[OneTimeSetUp]` runs before every fixture in the
+  assembly; while it awaited the readiness gate eagerly, all six rules failed after a 150s timeout on
+  any machine without the container running — a green-on-CI, red-everywhere-else gate. It holds only
+  because `AutomationRuntime` defers the gate and the browser launch to first session use.
+  Nothing in the code can enforce that, so the `lint` CI job — which starts no container — runs
+  `--filter "TestCategory=Architecture"`. If that step ever needs Docker, the coupling is back.

@@ -195,3 +195,11 @@ jobs:
 
       - name: Build with analysers
         run: dotnet build -c Release
+
+      # Deliberately in the job with NO Juice Shop container. The layering rules assert on IL
+      # metadata and are documented to need no SUT and no browser, but nothing in the code can keep
+      # that true — the assembly-level [SetUpFixture] runs before every fixture, so one eager await
+      # in AutomationRuntime.StartAsync is enough to couple them to Docker again. That regression is
+      # invisible in the e2e job, where the SUT is up. Here it goes red.
+      - name: Architecture rules
+        run: dotnet test -c Release --no-build --filter "TestCategory=Architecture"
