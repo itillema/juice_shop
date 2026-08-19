@@ -1,15 +1,9 @@
 namespace JuiceShop.Automation.Execution.Tests;
 
-/// <summary>
-/// Category names used to slice the suite from the command line.
-/// </summary>
+/// <summary>Category names used to slice the suite: <c>--filter "TestCategory=Smoke"</c>.</summary>
 /// <remarks>
-/// Constants rather than loose strings so that a rename cannot leave a CI filter silently matching
-/// nothing — a filter that matches no tests reports success, which is the worst possible failure
-/// mode for a quality gate.
-/// <para>
-/// Example: <c>dotnet test --filter "TestCategory=Smoke"</c>
-/// </para>
+/// Constants, not loose strings — a renamed category would leave a CI filter matching nothing, and
+/// a filter that matches nothing reports success.
 /// </remarks>
 public static class TestCategories
 {
@@ -31,10 +25,6 @@ public static class TestCategories
     /// <summary>Layering rules. No browser, no SUT — these run in milliseconds.</summary>
     public const string Architecture = "Architecture";
 
-    /// <summary>
-    /// Quarantined as intermittently unreliable. Excluded from the main run with
-    /// <c>--filter "TestCategory!=Flaky"</c> rather than papered over with a retry attribute,
-    /// so that the instability stays visible instead of being hidden by a green build.
-    /// </summary>
+    /// <summary>Quarantined by filter rather than by <c>[Retry]</c>, so instability stays visible.</summary>
     public const string Flaky = "Flaky";
 }

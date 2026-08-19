@@ -2,9 +2,8 @@
 #
 # Starts the system under test and runs the automated test suite.
 #
-# Deliberately thin. It only starts the container and calls `dotnet test` — browser installation,
-# SUT readiness and artifact handling are the framework's job, not a shell script's, so the same
-# behaviour applies whether you run this script, `dotnet test` directly, or the tests from an IDE.
+# Thin by design: browser install, SUT readiness and artifacts are the framework's job, so this
+# script, a bare `dotnet test` and an IDE run all behave the same.
 #
 # Usage:
 #   ./run.sh
@@ -24,15 +23,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo "==> Starting OWASP Juice Shop"
-# --wait blocks until the healthcheck passes. Without the healthcheck defined in
-# docker-compose.yml it would only wait for "running", which is ~30s too early.
+# --wait blocks on the healthcheck; without it, "running" is ~30s too early.
 docker compose up -d --wait --wait-timeout 240
 
 echo "==> Checking for source files hidden by .gitignore"
-# CI cannot run this check: an ignored file is never checked out, so there is nothing for it to
-# find. It only works here, where the files still exist on disk. MSBuild does not read .gitignore
-# either, so without this the build below happily compiles a file CI will never see. See the header
-# of .gitignore for how that played out.
+# Only works locally, where an ignored file still exists on disk — CI never checks one out.
+# MSBuild ignores .gitignore, so the build below would compile a file CI can never see.
 shadowed=$(git ls-files --others --ignored --exclude-standard -- 'src/*' \
     ':(exclude)src/*/bin/*' ':(exclude)src/*/obj/*')
 if [[ -n "$shadowed" ]]; then

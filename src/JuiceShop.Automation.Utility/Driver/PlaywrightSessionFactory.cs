@@ -5,14 +5,10 @@ using Microsoft.Playwright;
 
 namespace JuiceShop.Automation.Utility.Driver;
 
-/// <summary>
-/// Playwright-backed implementation of <see cref="ISessionFactory"/>.
-/// </summary>
+/// <summary>Playwright-backed <see cref="ISessionFactory"/>.</summary>
 /// <remarks>
-/// Owns exactly one <see cref="IPlaywright"/> and one <see cref="IBrowser"/> for the whole run, and
-/// hands out one <see cref="IBrowserContext"/> per test. Launching a browser costs roughly a second;
-/// creating a context costs single-digit milliseconds. Sharing the browser and isolating the context
-/// is what makes a parallel suite both fast and free of cross-test bleed.
+/// One <see cref="IPlaywright"/> and one <see cref="IBrowser"/> per run; one context per test.
+/// A browser costs ~1s to launch, a context single-digit milliseconds.
 /// </remarks>
 internal sealed class PlaywrightSessionFactory : ISessionFactory
 {
@@ -68,10 +64,9 @@ internal sealed class PlaywrightSessionFactory : ISessionFactory
             {
                 Headless = browserSettings.Headless,
                 SlowMo = browserSettings.SlowMoMilliseconds,
+                // Containers default to a 64MB /dev/shm, which Chromium exhausts and then crashes
+                // the renderer — surfacing as "Target closed" on a random test.
                 Args = browserSettings.Name == "chromium"
-                    // Containers default to a 64MB /dev/shm, which Chromium exhausts and then
-                    // crashes the renderer. The failure surfaces as "Target closed" on a random
-                    // test, which is indistinguishable from flakiness until you know to look.
                     ? ["--disable-dev-shm-usage"]
                     : null,
             });
@@ -107,9 +102,8 @@ internal sealed class PlaywrightSessionFactory : ISessionFactory
                 Width = browserSettings.ViewportWidth,
                 Height = browserSettings.ViewportHeight,
             },
-            // Pinned so that neither the host machine's locale nor its theme can change what the
-            // application renders. Juice Shop translates product names, so a different locale
-            // breaks every text-based selector.
+            // Pinned: Juice Shop translates product names, so a different locale breaks every
+            // text-based selector.
             Locale = "en-US",
             ColorScheme = ColorScheme.Light,
             IgnoreHTTPSErrors = true,
@@ -129,9 +123,8 @@ internal sealed class PlaywrightSessionFactory : ISessionFactory
 
         var page = await context.NewPageAsync();
 
-        // Angular Material animates dialogs and snackbars in and out. Playwright's actionability
-        // checks require an element to be stable, so an animating overlay turns every nearby click
-        // into a timing gamble.
+        // Playwright requires an element to be stable, so an animating overlay turns every nearby
+        // click into a timing gamble.
         await page.EmulateMediaAsync(new PageEmulateMediaOptions { ReducedMotion = ReducedMotion.Reduce });
 
         return new PlaywrightBrowserSession(
@@ -141,15 +134,11 @@ internal sealed class PlaywrightSessionFactory : ISessionFactory
             _loggerFactory.CreateLogger<PlaywrightBrowserSession>());
     }
 
-    /// <summary>
-    /// Seeds the configured cookies into a fresh context before its first navigation.
-    /// </summary>
+    /// <summary>Seeds the configured cookies before the context's first navigation.</summary>
     /// <remarks>
-    /// The names and values come from configuration, so this method carries no knowledge of the
-    /// application under test. For Juice Shop they pre-dismiss the welcome dialog and the cookie
-    /// banner, which is exactly what the application's own test harness does — dismissing them by
-    /// clicking, in every test, is both slower and less reliable, because the banner is a Material
-    /// dialog that traps focus and the cookie bar overlaps controls in the corner it occupies.
+    /// Names and values come from configuration, so this carries no knowledge of the application.
+    /// For Juice Shop they pre-dismiss the welcome dialog and cookie banner — clicking them away
+    /// instead is slower and less reliable.
     /// </remarks>
     private async Task ApplySessionCookiesAsync(IBrowserContext context)
     {

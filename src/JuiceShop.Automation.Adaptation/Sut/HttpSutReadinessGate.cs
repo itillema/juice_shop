@@ -7,25 +7,10 @@ using Microsoft.Extensions.Options;
 
 namespace JuiceShop.Automation.Adaptation.Sut;
 
-/// <summary>
-/// Establishes SUT readiness over HTTP.
-/// </summary>
+/// <summary>Establishes SUT readiness over HTTP.</summary>
 /// <remarks>
-/// <para>
-/// This is an integration with an external service, spoken over a protocol, which is what makes it
-/// an Adaptation concern rather than a framework one. The layer above knows only
-/// <see cref="ISutReadinessGate"/>; swapping this for a gRPC health check, a database probe or a
-/// message-queue ping would touch no other project.
-/// </para>
-/// <para>
-/// It is deliberately redundant with the Compose healthcheck. The two cover different failure
-/// modes: the healthcheck gates <c>docker compose up --wait</c>, but says nothing when a developer
-/// starts the container by other means, points the suite at a remote environment, or runs
-/// <c>dotnet test</c> in a second terminal while the container is still seeding. Juice Shop drops
-/// and re-seeds its entire database on every boot, so the window in which the port is open but the
-/// application is not ready is tens of seconds wide — long enough to hit constantly, and the
-/// resulting empty product lists and 500s look exactly like flaky tests.
-/// </para>
+/// Deliberately redundant with the Compose healthcheck, which says nothing about a container started
+/// by other means or a remote environment. See docs/adr/0004.
 /// </remarks>
 public sealed class HttpSutReadinessGate : ISutReadinessGate
 {

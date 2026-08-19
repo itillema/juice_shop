@@ -3,19 +3,11 @@ using Serilog.Events;
 
 namespace JuiceShop.Automation.Utility.Logging;
 
-/// <summary>
-/// Builds the Serilog logger that sits behind <c>ILogger&lt;T&gt;</c>.
-/// </summary>
-/// <remarks>
-/// Serilog is the implementation; Microsoft.Extensions.Logging is the abstraction the rest of the
-/// solution codes against. That split means the Adaptation layer's page objects depend only on
-/// <c>ILogger&lt;T&gt;</c> and would survive swapping the logging backend.
-/// </remarks>
+/// <summary>Builds the Serilog logger behind <c>ILogger&lt;T&gt;</c>.</summary>
+/// <remarks>Serilog is the implementation; the rest of the solution codes against the abstraction.</remarks>
 public static class LoggerFactoryBuilder
 {
     /// <summary>Creates the run-wide Serilog logger.</summary>
-    /// <param name="logDirectory">Directory for the rolling run log.</param>
-    /// <param name="minimumLevel">Minimum level to emit.</param>
     public static Serilog.Core.Logger Build(string logDirectory, LogEventLevel minimumLevel = LogEventLevel.Information)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(logDirectory);

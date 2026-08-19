@@ -5,9 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace JuiceShop.Automation.Utility.Artifacts;
 
-/// <summary>
-/// Resolves where failure artifacts are written, and turns test names into safe file names.
-/// </summary>
+/// <summary>Resolves where failure artifacts are written, and makes test names safe as file names.</summary>
 public sealed class ArtifactPathProvider
 {
     private static readonly SearchValues<char> InvalidChars =
@@ -25,20 +23,14 @@ public sealed class ArtifactPathProvider
 
         var configured = settings.Value.Artifacts.Directory;
 
-        // An absolute path in configuration wins; otherwise resolve relative to the test binary,
-        // which is where CI expects to collect from.
+        // An absolute path in configuration wins; otherwise resolve against the test binary.
         _root = Path.IsPathRooted(configured)
             ? configured
             : Path.Combine(baseDirectory, configured);
     }
 
-    /// <summary>
-    /// Directory Allure writes its raw results into.
-    /// </summary>
-    /// <remarks>
-    /// Fixed by <c>allureConfig.json</c> and resolved by Allure relative to the test binary, not to
-    /// the repository root — a CI step pointed at <c>./allure-results</c> finds an empty directory.
-    /// </remarks>
+    /// <summary>Where Allure writes raw results.</summary>
+    /// <remarks>Resolved relative to the test binary, not the repo root — CI must collect from here.</remarks>
     public string AllureResultsDirectory => Path.Combine(_baseDirectory, "allure-results");
 
     /// <summary>Root artifact directory for the run.</summary>
@@ -56,23 +48,11 @@ public sealed class ArtifactPathProvider
     /// <summary>Directory holding run logs.</summary>
     public string LogDirectory => Path.Combine(_root, "logs");
 
-    /// <summary>
-    /// Removes artifacts left behind by a previous run.
-    /// </summary>
+    /// <summary>Removes artifacts left behind by a previous run.</summary>
     /// <remarks>
-    /// Without this, a green run still ships the screenshots and traces of whatever failed last
-    /// time. CI uploads them, someone opens the artifact bundle expecting it to describe this run,
-    /// and draws a conclusion about a failure that no longer exists. Artifacts are only meaningful
-    /// if their presence means "this run produced them".
-    /// <para>
-    /// Allure results are cleared for the same reason. Allure appends, so a locally generated report
-    /// would otherwise show every test from every run this working copy has ever executed. Trend and
-    /// history come from the published report's own history directory, not from these raw results, so
-    /// nothing is lost.
-    /// </para>
-    /// <para>
-    /// Logs are deliberately not cleared: they roll by day and are useful across runs.
-    /// </para>
+    /// Artifacts are only meaningful if their presence means "this run produced them". Allure
+    /// results are cleared for the same reason — it appends, and history comes from the published
+    /// report. Logs are kept: they roll by day and are useful across runs.
     /// </remarks>
     public void ClearPreviousRun()
     {
@@ -88,10 +68,10 @@ public sealed class ArtifactPathProvider
         }
     }
 
-    /// <summary>Full path for a test's trace archive, creating the directory if needed.</summary>
+    /// <summary>Path for a test's trace archive, creating the directory if needed.</summary>
     public string TraceFileFor(string testName) => Reserve(TraceDirectory, testName, ".zip");
 
-    /// <summary>Full path for a test's screenshot, creating the directory if needed.</summary>
+    /// <summary>Path for a test's screenshot, creating the directory if needed.</summary>
     public string ScreenshotFileFor(string testName) => Reserve(ScreenshotDirectory, testName, ".png");
 
     private static string Reserve(string directory, string testName, string extension)
@@ -100,11 +80,8 @@ public sealed class ArtifactPathProvider
         return Path.Combine(directory, Sanitize(testName) + extension);
     }
 
-    /// <summary>
-    /// Reduces a fully qualified test name to something safe on every filesystem.
-    /// NUnit test names routinely contain parentheses, commas and quotes from parameterised cases,
-    /// all of which are either invalid on Windows or awkward to handle in CI artifact globs.
-    /// </summary>
+    /// <summary>Reduces a test name to something safe on every filesystem.</summary>
+    /// <remarks>Parameterised NUnit names carry parentheses, commas and quotes.</remarks>
     internal static string Sanitize(string testName)
     {
         if (string.IsNullOrWhiteSpace(testName))
@@ -120,7 +97,7 @@ public sealed class ArtifactPathProvider
 
         var sanitized = builder.ToString().Trim('_', '.');
 
-        // Windows still enforces MAX_PATH for many APIs; long parameterised names blow past it.
+        // Windows still enforces MAX_PATH for many APIs.
         const int maxLength = 120;
         return sanitized.Length <= maxLength ? sanitized : sanitized[^maxLength..];
     }

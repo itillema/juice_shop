@@ -7,23 +7,10 @@ using NUnit.Framework;
 
 namespace JuiceShop.Automation.Utility.Testing;
 
-/// <summary>
-/// Base class for browser-driven tests: session lifecycle, per-test DI scope and artifact capture.
-/// </summary>
+/// <summary>Base for browser tests: session lifecycle, per-test DI scope, artifact capture.</summary>
 /// <remarks>
-/// <para>
-/// Framework-level and application-agnostic — it knows about sessions and artifacts, not about
-/// Juice Shop. The SUT-specific base class that exposes the business-action facade sits in the test
-/// project and derives from this.
-/// </para>
-/// <para>
-/// This deliberately does not derive from <c>Microsoft.Playwright.NUnit.PageTest</c>. That class
-/// occupies C#'s single inheritance slot, which is a one-way decision once fixtures exist, and its
-/// public <c>IPage</c> property would put a browser handle on the inherited surface of every test
-/// class in the solution. What is given up is small and mostly replaced here; notably it is a
-/// misconception that those base classes capture failure artifacts — reading their source shows no
-/// tracing or screenshot code at all. See docs/adr/0002.
-/// </para>
+/// Framework-level and application-agnostic. Deliberately not <c>PageTest</c>, which would spend the
+/// single inheritance slot and put an <c>IPage</c> on every test's surface. See docs/adr/0002.
 /// </remarks>
 public abstract class E2ETestBase
 {
@@ -54,9 +41,8 @@ public abstract class E2ETestBase
 
         _artifacts = _scope.ServiceProvider.GetRequiredService<ArtifactCollector>();
 
-        // The first browser test of the run pays for the SUT readiness check and the browser launch;
-        // the rest get the already-initialised factory. Deriving from this class is what declares a
-        // test needs a live application, so this is the right place to charge that cost.
+        // Deriving from this class is what declares a test needs a live application, so the SUT
+        // wait and browser launch are charged here rather than to every test in the assembly.
         var sessionFactory = await AutomationRuntime.EnsureBrowsingAsync();
 
         Session = await sessionFactory.CreateSessionAsync();
@@ -80,8 +66,7 @@ public abstract class E2ETestBase
         }
         finally
         {
-            // The scope must be released even if artifact collection threw, or a failing test
-            // leaks a scope and the real failure gets buried under a teardown error.
+            // Must release even if artifact collection threw, or the real failure is buried.
             _scope?.Dispose();
         }
     }

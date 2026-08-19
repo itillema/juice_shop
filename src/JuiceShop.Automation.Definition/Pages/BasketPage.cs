@@ -6,10 +6,8 @@ namespace JuiceShop.Automation.Definition.Pages;
 
 /// <summary>Page object for <c>/#/basket</c>.</summary>
 /// <remarks>
-/// The quantity controls in this table carry no id, no aria-label and no text — they are icon-only
-/// buttons whose sole distinguishing feature is the Font Awesome class on the nested SVG. Selecting
-/// them via <c>:has()</c> on that icon class is the most stable option available; matching on
-/// position within the cell would break the moment a control is added or reordered.
+/// The quantity controls have no id, aria-label or text, so they are selected by the icon class on
+/// the nested SVG. Matching on position would break on any reorder.
 /// </remarks>
 internal sealed class BasketPage : PageObjectBase, IBasketPage
 {
@@ -44,8 +42,7 @@ internal sealed class BasketPage : PageObjectBase, IBasketPage
         {
             var name = (await row.Locator(".mat-column-product").InnerTextAsync()).Trim();
 
-            // The quantity cell also contains the two icon buttons, but those render as SVG and
-            // contribute no text, so the cell's inner text is the number alone.
+            // The cell's icon buttons render as SVG and contribute no text.
             var quantityText = (await row.Locator(".mat-column-quantity").InnerTextAsync()).Trim();
 
             lines.Add(new BasketLine(

@@ -1,19 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    UTILITY — the test automation framework itself.
+    UTILITY — the framework: configuration, logging, DI, artifacts, run lifecycle, driver, bases.
 
-    Configuration, logging, dependency-injection wiring, reporting and artifact capture, the run
-    lifecycle, the Playwright driver, and the base classes the test cases inherit from.
-
-    This project has NO ProjectReference to any other layer, by design. It is the bottom of the
-    dependency graph, contains nothing specific to Juice Shop, and could be lifted into another
-    product's solution unchanged.
-
-    Where the framework needs something from an integration — the run lifecycle has to wait for the
-    SUT to be reachable — it declares the port here (Sut/ISutReadinessGate.cs) and lets the
-    Adaptation layer supply the adapter. That is what keeps this project free of a dependency on
-    Adaptation without giving up ownership of the run lifecycle.
+    NO ProjectReference to any layer, by design — the bottom of the graph, with nothing specific to
+    Juice Shop in it. Where it needs an integration it declares a port (Sut/ISutReadinessGate.cs)
+    and lets Adaptation supply the adapter. It does bind to NUnit, so "reusable" means reusable in
+    another NUnit solution.
   -->
 
   <PropertyGroup>

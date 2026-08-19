@@ -1,15 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    EXECUTION — the test cases, and nothing else.
+    EXECUTION — the test cases: fixtures, categories, assembly setup, architecture rules.
 
-    This is the runnable test project: fixtures, categories, the assembly-level setup that starts the
-    run, and the architecture rules. It is also the composition root, which is the one place a
-    solution should know about every layer at once — GlobalSetup binds the Adaptation adapters and
-    the Definition services into the container the Utility layer builds.
+    Also the composition root, the one place that should know every layer at once — GlobalSetup
+    binds Adaptation and Definition into the container Utility builds.
 
-    A test here reads as business intent. It has no locators, no waits and no browser types, because
-    everything that could supply them lives behind the flows in Definition.
+    A test here reads as business intent: no locators, no waits, no browser types.
   -->
 
   <PropertyGroup>
@@ -20,10 +17,8 @@
     <EnableNUnitRunner>false</EnableNUnitRunner>
 
     <!--
-      `dotnet test` does not discover a .runsettings file on its own. Pointing at it here means the
-      documented command is the real one: a bare `dotnet test`, an IDE run and the CI invocation all
-      get the same worker count and results directory, instead of only the runs that remembered to
-      pass the settings flag explicitly.
+      `dotnet test` does not discover .runsettings on its own. Pointing at it here means a bare
+      `dotnet test`, an IDE run and CI all get the same worker count and results directory.
     -->
     <RunSettingsFilePath>$(MSBuildThisFileDirectory)..\..\.runsettings</RunSettingsFilePath>
   </PropertyGroup>
@@ -50,12 +45,9 @@
 
   <ItemGroup>
     <!--
-      Microsoft.NET.Sdk does not copy these to the output directory automatically the way the Web
-      SDK does. Without this, IConfiguration silently binds nothing and Allure silently ignores its
-      config — both of which present as baffling null-reference failures at runtime.
-
-      They live in this project rather than in Utility because configuration is read relative to the
-      test binary, and this is the project that produces it.
+      Microsoft.NET.Sdk does not copy these automatically the way the Web SDK does. Without this,
+      IConfiguration binds nothing and Allure ignores its config — both silently. They live here
+      rather than in Utility because configuration is read relative to the test binary.
     -->
     <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
     <None Update="appsettings.*.json" CopyToOutputDirectory="PreserveNewest" />

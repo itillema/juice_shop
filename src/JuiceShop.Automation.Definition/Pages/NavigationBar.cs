@@ -36,14 +36,8 @@ internal sealed class NavigationBar : PageObjectBase, INavigationBar
         await BasketButton.ClickAsync();
     }
 
-    /// <summary>
-    /// Signed-in state is inferred from the account menu offering "Logout" rather than "Login".
-    /// </summary>
-    /// <remarks>
-    /// The menu is a Material overlay, so it has to be opened for the item to exist in the DOM at
-    /// all. It is closed again afterwards because an open overlay covers the page and would
-    /// intercept the next click — a failure that shows up in the following action, not this one.
-    /// </remarks>
+    /// <summary>Signed in is inferred from the menu offering "Logout" rather than "Login".</summary>
+    /// <remarks>Closed again afterwards, or the open overlay intercepts the next action's click.</remarks>
     public async Task ShouldShowSignedInAsync(CancellationToken cancellationToken = default)
     {
         await OpenAccountMenuAsync(LogoutMenuItem);
@@ -63,10 +57,6 @@ internal sealed class NavigationBar : PageObjectBase, INavigationBar
             expected.ToString(System.Globalization.CultureInfo.InvariantCulture),
             new LocatorAssertionsToContainTextOptions { Timeout = ExpectTimeout });
 
-    /// <summary>
-    /// Opens the account menu, retrying if the click is swallowed before Angular Material has
-    /// armed the trigger.
-    /// </summary>
     /// <param name="expectedItem">A menu item that only exists once the overlay is open.</param>
     private Task OpenAccountMenuAsync(ILocator expectedItem) =>
         OpenOverlayAsync(AccountMenuButton, expectedItem);
@@ -75,8 +65,7 @@ internal sealed class NavigationBar : PageObjectBase, INavigationBar
     {
         await Page.Keyboard.PressAsync("Escape");
 
-        // Wait for the backdrop to actually leave the DOM. Returning while it is still animating
-        // out hands the next action a page that is not yet clickable.
+        // A backdrop still animating out leaves the page unclickable.
         await Expect(Page.Locator(".cdk-overlay-backdrop"))
             .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = ExpectTimeout });
     }

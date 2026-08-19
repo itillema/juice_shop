@@ -5,26 +5,12 @@ using Serilog.Formatting.Display;
 
 namespace JuiceShop.Automation.Utility.Logging;
 
-/// <summary>
-/// Serilog sink that routes log events into NUnit's per-test output channels.
-/// </summary>
+/// <summary>Serilog sink routing log events into NUnit's per-test output channels.</summary>
 /// <remarks>
-/// <para>
-/// Written by hand rather than taken as a dependency: the community <c>Serilog.Sinks.NUnit</c>
-/// package was last published in 2020 and targets NUnit 3.
-/// </para>
-/// <para>
-/// It writes to both channels on purpose, because they do different jobs:
-/// <list type="bullet">
-/// <item><see cref="TestContext.Out"/> is captured and attributed to the currently executing test,
-/// so it lands inside the .trx and in the per-test body of the Allure report. That is what makes a
-/// failure self-explanatory to someone reading the report a week later.</item>
-/// <item><see cref="TestContext.Progress"/> streams straight to the console, which is what you
-/// actually watch during a CI run.</item>
-/// </list>
-/// <c>Console.WriteLine</c> is not a substitute for either: under parallel execution its output
-/// interleaves across tests and is attributed to none of them.
-/// </para>
+/// Hand-rolled because Serilog.Sinks.NUnit was last published in 2020 and targets NUnit 3.
+/// Both channels are written: <c>Out</c> is attributed to the test and lands in the .trx and Allure
+/// report; <c>Progress</c> streams to the console. <c>Console.WriteLine</c> replaces neither — under
+/// parallel execution its output interleaves and is attributed to no test.
 /// </remarks>
 internal sealed class NUnitTestContextSink : ILogEventSink
 {
@@ -37,8 +23,7 @@ internal sealed class NUnitTestContextSink : ILogEventSink
     {
         ArgumentNullException.ThrowIfNull(logEvent);
 
-        // Outside a test context (for example during assembly-level teardown) there is nowhere
-        // meaningful to write, and touching TestContext would throw.
+        // Outside a test context — assembly teardown, say — touching TestContext would throw.
         if (TestContext.CurrentContext?.Test.ID is null)
         {
             return;
@@ -55,8 +40,8 @@ internal sealed class NUnitTestContextSink : ILogEventSink
         }
         catch (ObjectDisposedException)
         {
-            // The test's output writer is torn down slightly before the last async log events
-            // drain. Losing a trailing log line is preferable to failing an otherwise good test.
+            // The writer is torn down just before the last async log events drain. Losing a
+            // trailing line beats failing a good test.
         }
     }
 }

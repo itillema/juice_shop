@@ -9,20 +9,10 @@ public sealed record Credentials(string Email, string Password, string Descripti
     public override string ToString() => $"{Description} <{Email}>";
 }
 
-/// <summary>
-/// Accounts seeded into Juice Shop at container start.
-/// </summary>
+/// <summary>Accounts seeded into Juice Shop at container start.</summary>
 /// <remarks>
-/// <para>
-/// These come from <c>data/static/users.yml</c> in the Juice Shop image, where the email is stored
-/// as a bare local part and the domain (<c>juice-sh.op</c>) is appended during seeding. The seed is
-/// deterministic because <c>application.numberOfRandomFakeUsers</c> is 0 by default.
-/// </para>
-/// <para>
-/// Upstream's own Cypress suite hardcodes several of these, so they are effectively contract — but
-/// only within a pinned image tag, which is the reason docker-compose.yml pins by digest. Keeping
-/// them in one file means a version bump is a single-file change rather than a search-and-replace.
-/// </para>
+/// From <c>data/static/users.yml</c> in the image, so they hold only within the pinned digest —
+/// which is why they live in one file and docker-compose.yml pins by digest.
 /// </remarks>
 public static class TestUsers
 {
@@ -30,10 +20,7 @@ public static class TestUsers
     public static Credentials Admin { get; } =
         new("admin@juice-sh.op", "admin123", "Administrator");
 
-    /// <summary>
-    /// Ordinary customer with a seeded wallet balance of 100. The default choice for shopping
-    /// journeys that need a pre-existing account.
-    /// </summary>
+    /// <summary>Ordinary customer. The default for journeys needing a pre-existing account.</summary>
     public static Credentials Customer { get; } =
         new("jim@juice-sh.op", "ncc-1701", "Customer");
 

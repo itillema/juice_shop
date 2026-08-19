@@ -38,13 +38,9 @@ public sealed class ProductCatalogTests : JuiceShopTest
         await Shop.SearchAsync("Eggfruit");
         var narrowResults = await Shop.Catalog.GetVisibleProductsAsync();
 
-        // Asserting on materialised data, so NUnit's constraint model is the right tool here;
-        // Playwright's Expect is for values still being read out of a live DOM.
-        //
-        // Deliberately an invariant about relative sizes rather than "every result name contains
-        // the term". Juice Shop matches the term against name OR description, so a product whose
-        // name does not contain the term is a correct result, not a bug — an earlier version of
-        // this test asserted otherwise and was simply wrong about the application.
+        // NUnit constraints, not Expect: the data is already materialised.
+        // Relative sizes, not "every name contains the term" — Juice Shop matches name OR
+        // description, so a non-matching name is a correct result.
         Assert.That(broadResults, Is.Not.Empty);
         Assert.That(narrowResults, Is.Not.Empty);
         Assert.That(narrowResults, Has.Count.LessThanOrEqualTo(broadResults.Count));

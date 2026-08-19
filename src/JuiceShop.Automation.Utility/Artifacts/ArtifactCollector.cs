@@ -5,23 +5,11 @@ using NUnit.Framework.Interfaces;
 
 namespace JuiceShop.Automation.Utility.Artifacts;
 
-/// <summary>
-/// Collects diagnostic artifacts for a finished test.
-/// </summary>
+/// <summary>Collects diagnostic artifacts for a finished test.</summary>
 /// <remarks>
-/// <para>
-/// Playwright for .NET has no declarative equivalent of the JavaScript runner's
-/// <c>trace: 'on-first-retry'</c> / <c>screenshot: 'only-on-failure'</c>. It is a widespread
-/// misconception that <c>PageTest</c> and friends capture artifacts automatically — reading their
-/// source shows no artifact code at all. Every byte collected here is collected because this class
-/// asks for it.
-/// </para>
-/// <para>
-/// The policy is deliberately asymmetric: tracing runs for every test, but the buffer is only
-/// written to disk when the test failed. That keeps a green run's artifact footprint at zero while
-/// still guaranteeing that any failure — including a first-time, non-reproducible one — arrives
-/// with a full trace attached.
-/// </para>
+/// Playwright for .NET has no <c>trace: 'on-first-retry'</c> equivalent and its NUnit base classes
+/// capture nothing — every byte here is collected because this class asks for it. Tracing runs for
+/// every test but is only written on failure, so a green run's footprint is zero. See docs/adr/0002.
 /// </remarks>
 public sealed class ArtifactCollector
 {
@@ -46,10 +34,8 @@ public sealed class ArtifactCollector
         return session.StartTracingAsync(testName);
     }
 
-    /// <summary>
-    /// Finishes collection, writing artifacts only when the test did not pass.
-    /// </summary>
-    /// <returns>Paths of the artifacts written, which may be empty.</returns>
+    /// <summary>Finishes collection, writing artifacts only when the test did not pass.</summary>
+    /// <returns>Paths written, which may be empty.</returns>
     public async Task<IReadOnlyList<string>> CompleteAsync(IBrowserSession session, string testName)
     {
         ArgumentNullException.ThrowIfNull(session);
@@ -60,14 +46,11 @@ public sealed class ArtifactCollector
 
         if (!testFailed)
         {
-            // Stopping without a path discards the buffer. Skipping the call entirely would leave
-            // the context accumulating trace data for the rest of its life.
+            // Stopping without a path discards the buffer; skipping the call leaves it accumulating.
             await session.StopTracingAsync(outputPath: null);
             return written;
         }
 
-        // The path provider sanitises the test name itself — parameterised NUnit names routinely
-        // contain quotes, commas and parentheses that are invalid in a Windows filename.
         var screenshotPath = await session.CaptureScreenshotAsync(_paths.ScreenshotFileFor(testName));
         if (screenshotPath is not null)
         {
@@ -90,9 +73,7 @@ public sealed class ArtifactCollector
         return written;
     }
 
-    /// <summary>
-    /// Registers the file with NUnit so it flows into the .trx and into the Allure report body.
-    /// </summary>
+    /// <summary>Registers the file with NUnit so it reaches the .trx and the Allure report.</summary>
     private void Attach(string path, string description)
     {
         try

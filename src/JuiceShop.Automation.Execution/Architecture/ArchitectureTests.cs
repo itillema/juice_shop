@@ -8,22 +8,11 @@ using NUnit.Framework;
 
 namespace JuiceShop.Automation.Execution.Architecture;
 
-/// <summary>
-/// Executable specification of the layering.
-/// </summary>
+/// <summary>Executable specification of the layering.</summary>
 /// <remarks>
-/// <para>
-/// The point of these is that the architecture is <em>tested</em>, not merely described in a README
-/// that drifts. They run in the same <c>dotnet test</c> invocation as the browser tests, need no SUT
-/// and no browser, and finish in milliseconds.
-/// </para>
-/// <para>
-/// Much of the layering is already enforced without them. MSBuild rejects a circular
-/// <c>ProjectReference</c> graph outright, and the page objects and their contracts are
-/// <c>internal</c> to the Definition assembly, so no test can reach a locator even deliberately.
-/// These cover what the compiler cannot see: which layers are allowed to know about the automation
-/// technology, and whether the dependency graph still points the way it is documented to.
-/// </para>
+/// Covers what the compiler cannot: which layers may know the automation technology, and whether
+/// the dependency graph still points where it is documented to. No SUT, no browser, milliseconds.
+/// See docs/adr/0005.
 /// </remarks>
 [TestFixture]
 [Category(TestCategories.Architecture)]
@@ -81,9 +70,8 @@ public sealed class ArchitectureTests
     [Description("Test cases express intent, not browser mechanics.")]
     public void Test_Cases_Do_Not_Depend_On_Playwright()
     {
-        // This fixture is excluded from its own rule: it names the forbidden namespace as string
-        // data, and NetArchTest's IL scan cannot tell a constant naming a namespace apart from a
-        // genuine reference to a type in it. Every other type in the assembly is still covered.
+        // This fixture is exempt: it names the namespace as string data, which an IL scan cannot
+        // tell from a real reference. Every other type stays covered.
         AssertNoDependency(
             Types.InAssembly(Execution)
                 .That()

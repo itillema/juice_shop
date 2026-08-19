@@ -8,15 +8,10 @@ internal sealed record ProductSummary(string Name, decimal Price);
 /// <summary>A line in the shopping basket.</summary>
 internal sealed record BasketLine(string ProductName, int Quantity);
 
-/// <summary>
-/// The login page at <c>/#/login</c>.
-/// </summary>
+/// <summary>The login page at <c>/#/login</c>.</summary>
 /// <remarks>
-/// Each page contract exposes both actions and its own assertions. Keeping the assertions here —
-/// rather than handing a locator upward for the test to assert on — is what confines Playwright's
-/// auto-retrying web-first assertions to the layer that owns the locators. A test that reads an
-/// element's text and then asserts on the string has silently opted out of retrying, and is the
-/// single most common cause of flaky .NET Playwright suites.
+/// Every contract exposes its own assertions, keeping auto-retrying <c>Expect</c> where the locators
+/// are. See docs/architecture.md — "Assert through the layer that owns the locator".
 /// </remarks>
 internal interface ILoginPage
 {
@@ -26,14 +21,9 @@ internal interface ILoginPage
     /// <summary>Fills the credential fields and submits.</summary>
     Task SignInAsync(Credentials credentials, CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Waits until a successful sign-in has actually taken effect in the application.
-    /// </summary>
-    /// <remarks>
-    /// Separate from <see cref="SignInAsync"/> because the two are needed independently: the
-    /// negative tests submit credentials and expect the app to stay put, so they must not wait for
-    /// an authentication that is never going to arrive.
-    /// </remarks>
+    /// <summary>Waits until a successful sign-in has taken effect.</summary>
+    /// <remarks>Separate from <see cref="SignInAsync"/>: negative tests must not wait for an
+    /// authentication that will never arrive.</remarks>
     Task WaitForSignInToCompleteAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Follows the "Not yet a customer?" link to registration.</summary>

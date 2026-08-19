@@ -3,16 +3,8 @@ using static Microsoft.Playwright.Assertions;
 
 namespace JuiceShop.Automation.Definition.Pages;
 
-/// <summary>
-/// Shared plumbing for page objects: the page handle, a pre-configured assertion timeout, and
-/// navigation.
-/// </summary>
-/// <remarks>
-/// Page objects are deliberately <see langword="internal"/>. Only the technology-free interfaces in
-/// <c>JuiceShop.Automation.Definition.Pages</c> escape the assembly, which is what stops a
-/// test from reaching past the abstraction to poke at a locator. That constraint is enforced by the
-/// compiler here and re-asserted by the architecture tests.
-/// </remarks>
+/// <summary>Shared plumbing for page objects: page handle, assertion timeout, navigation.</summary>
+/// <remarks>Internal by design — only the technology-free contracts leave this assembly.</remarks>
 internal abstract class PageObjectBase
 {
     protected PageObjectBase(IPage page, int expectTimeoutMilliseconds)
@@ -29,38 +21,18 @@ internal abstract class PageObjectBase
     /// <summary>Options carrying the configured assertion timeout.</summary>
     protected LocatorAssertionsToBeVisibleOptions VisibleOptions => new() { Timeout = ExpectTimeout };
 
-    /// <summary>Navigates to a hash route and waits for Angular to finish the initial render.</summary>
+    /// <summary>Navigates to a hash route and waits for Angular's initial render.</summary>
     protected async Task NavigateAsync(string route)
     {
         await Page.GotoAsync(route);
         await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
     }
 
-    /// <summary>
-    /// Opens an Angular Material overlay (menu or select panel), retrying if the first click has
-    /// no effect.
-    /// </summary>
+    /// <summary>Opens a Material overlay, retrying a swallowed first click.</summary>
     /// <remarks>
-    /// <para>
-    /// A click is a single shot: it either lands on a live handler or it is lost. Angular Material
-    /// components go through a window where the element is present, visible, stable and enabled —
-    /// so Playwright's actionability checks all pass — but the component's own click handling is
-    /// not yet armed. The click is then silently swallowed. The element even takes focus, which is
-    /// what makes the failure so confusing to diagnose: a screenshot shows a focused control with
-    /// a closed panel, and every locator involved is provably correct.
-    /// </para>
-    /// <para>
-    /// Playwright's JavaScript API covers this with <c>expect.toPass()</c>, which retries an entire
-    /// block. The .NET API has no equivalent, so this is the bounded equivalent. Two properties
-    /// make it safe rather than a blind retry: it checks whether the overlay is already open before
-    /// each attempt, so it can never toggle a successfully opened panel shut, and it gives up after
-    /// a fixed number of attempts and then defers to <c>Expect</c> so the final failure carries
-    /// Playwright's full diagnostic call log rather than a bare timeout.
-    /// </para>
-    /// <para>
-    /// This retries an <em>interaction</em>, not an assertion. It cannot mask a genuine product
-    /// bug: if the overlay never opens, the test still fails.
-    /// </para>
+    /// Material components pass every actionability check before their own click handling is armed,
+    /// so the first click can be lost silently. Retries an interaction, not an assertion — if the
+    /// overlay never opens the test still fails. See docs/architecture.md.
     /// </remarks>
     /// <param name="trigger">The control that opens the overlay.</param>
     /// <param name="overlayContent">An element that exists only once the overlay is open.</param>
@@ -73,6 +45,7 @@ internal abstract class PageObjectBase
 
         for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
+            // Checked first, so a successful open is never toggled shut.
             if (await overlayContent.IsVisibleAsync())
             {
                 return;
@@ -92,35 +65,21 @@ internal abstract class PageObjectBase
             }
             catch (TimeoutException) when (attempt < maxAttempts)
             {
-                // Swallowed click. Fall through and try again.
+                // Swallowed click. Try again.
             }
         }
 
-        // Exhausted the retries: let Expect fail with its full call log.
+        // Exhausted: let Expect fail with its full call log rather than a bare timeout.
         await Expect(overlayContent).ToBeVisibleAsync(VisibleOptions);
     }
 
-    /// <summary>
-    /// Clicks a control and waits for the request it triggers to come back.
-    /// </summary>
+    /// <summary>Clicks a control and waits for the request it triggers to come back.</summary>
     /// <remarks>
-    /// <para>
-    /// Every click that changes server state is asynchronous, and a page object that returns as soon
-    /// as the click lands is lying about what it did. The caller then navigates or asserts against
-    /// state the server has not written yet. On a fast, idle machine the request usually wins the
-    /// race and the suite looks green; under parallel execution or on a loaded CI runner it does
-    /// not, which is precisely the profile of a test suite people stop trusting.
-    /// </para>
-    /// <para>
-    /// Any status is accepted, not just success. A rejected login is a legitimate outcome that the
-    /// negative tests depend on — what matters here is that the exchange finished, not that it
-    /// succeeded. Asserting on the outcome is the caller's job.
-    /// </para>
+    /// A page object that returns as soon as the click lands is lying about what it did. Any status
+    /// is accepted — a rejected login is a legitimate outcome; asserting on it is the caller's job.
+    /// See docs/architecture.md.
     /// </remarks>
-    /// <param name="control">The control to click.</param>
-    /// <param name="urlFragment">Substring identifying the expected request URL.</param>
-    /// <param name="methods">Accepted HTTP methods.</param>
-    /// <returns>The matched response, so the caller can assert on its status when that matters.</returns>
+    /// <returns>The matched response, so the caller can assert on its status.</returns>
     protected async Task<IResponse> ClickAndAwaitResponseAsync(ILocator control, string urlFragment, params string[] methods)
     {
         return await Page.RunAndWaitForResponseAsync(
@@ -131,20 +90,11 @@ internal abstract class PageObjectBase
             new PageRunAndWaitForResponseOptions { Timeout = ExpectTimeout });
     }
 
-    /// <summary>
-    /// Locates a product card by the name it displays.
-    /// </summary>
+    /// <summary>Locates a product card by the name it displays.</summary>
     /// <remarks>
-    /// <para>
-    /// Matching on the rendered name rather than an index is what makes these tests survive a
-    /// change to the catalogue ordering or to the seeded product list.
-    /// </para>
-    /// <para>
-    /// The selector is the Angular component element <c>app-product</c> rather than a CSS class.
-    /// The class <c>.product</c> appears twice per card (on the host element and on the inner
-    /// <c>article</c>), so it would double every count; <c>mat-card</c> also matches the empty-state
-    /// card rendered when a search returns nothing.
-    /// </para>
+    /// By name, not index, so the tests survive a catalogue reorder. <c>app-product</c> rather than
+    /// <c>.product</c> (which appears twice per card) or <c>mat-card</c> (which matches the
+    /// empty-state card).
     /// </remarks>
     protected ILocator ProductTile(string productName) =>
         Page.Locator("app-product").Filter(new LocatorFilterOptions { HasTextString = productName });

@@ -3,13 +3,11 @@
     Starts the system under test and runs the automated test suite.
 
 .DESCRIPTION
-    Deliberately thin. It only starts the container and calls `dotnet test` — browser installation,
-    SUT readiness and artifact handling are the framework's job, not a shell script's, so the same
-    behaviour applies whether you run this script, `dotnet test` directly, or the tests from an IDE.
+    Thin by design: browser install, SUT readiness and artifacts are the framework's job, so this
+    script, a bare `dotnet test` and an IDE run all behave the same.
 
-    Written for Windows PowerShell 5.1, which is what Windows actually ships. It intentionally does
-    not require PowerShell 7 (`pwsh`), because requiring a separate install would undercut the
-    point of a one-command start.
+    Targets Windows PowerShell 5.1, not `pwsh` — requiring a separate install would undercut a
+    one-command start.
 
 .PARAMETER Filter
     NUnit filter expression, e.g. "TestCategory=Smoke".
@@ -32,18 +30,15 @@ $ErrorActionPreference = 'Stop'
 Set-Location -Path $PSScriptRoot
 
 Write-Host '==> Starting OWASP Juice Shop' -ForegroundColor Cyan
-# --wait blocks until the healthcheck passes. Without the healthcheck defined in
-# docker-compose.yml it would only wait for "running", which is ~30s too early.
+# --wait blocks on the healthcheck; without it, "running" is ~30s too early.
 docker compose up -d --wait --wait-timeout 240
 if ($LASTEXITCODE -ne 0) {
     throw "Juice Shop did not become healthy. Check 'docker compose logs juice-shop'."
 }
 
 Write-Host '==> Checking for source files hidden by .gitignore' -ForegroundColor Cyan
-# CI cannot run this check: an ignored file is never checked out, so there is nothing for it to
-# find. It only works here, where the files still exist on disk. MSBuild does not read .gitignore
-# either, so without this the build below happily compiles a file CI will never see. See the header
-# of .gitignore for how that played out.
+# Only works locally, where an ignored file still exists on disk — CI never checks one out.
+# MSBuild ignores .gitignore, so the build below would compile a file CI can never see.
 $shadowed = git ls-files --others --ignored --exclude-standard -- 'src/*' `
     ':(exclude)src/*/bin/*' ':(exclude)src/*/obj/*'
 if ($shadowed) {
@@ -57,7 +52,7 @@ dotnet build -c Release
 if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 
 if ($Headed) {
-    # Environment variables override appsettings.json. Double underscore is the section separator.
+    # Double underscore is the section separator; env vars override appsettings.json.
     $env:AUTOMATION__BROWSER__HEADLESS = 'false'
 }
 

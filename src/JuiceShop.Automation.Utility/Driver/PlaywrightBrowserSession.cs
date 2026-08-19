@@ -4,14 +4,8 @@ using Microsoft.Playwright;
 
 namespace JuiceShop.Automation.Utility.Driver;
 
-/// <summary>
-/// Playwright-backed browsing session: one isolated context and the page driven within it.
-/// </summary>
-/// <remarks>
-/// This holds no knowledge of the application. It does not know what a login page is, and it does
-/// not construct page objects — those belong to the Definition layer, which builds them from
-/// <see cref="Page"/>. The session's job is lifetime and diagnostics, nothing else.
-/// </remarks>
+/// <summary>One isolated Playwright context and the page driven within it.</summary>
+/// <remarks>Lifetime and diagnostics only — it holds no knowledge of the application.</remarks>
 internal sealed class PlaywrightBrowserSession : IBrowserSession
 {
     private readonly IBrowserContext _context;
@@ -68,9 +62,8 @@ internal sealed class PlaywrightBrowserSession : IBrowserSession
 
         _tracing = false;
 
-        // Stop must be called on both paths. Omitting it on the passing path leaves the context
-        // buffering trace data for the rest of its life; passing a null Path is how the buffer is
-        // dropped instead of written.
+        // Must be called on both paths, or the context buffers trace data for the rest of its life.
+        // A null Path drops the buffer instead of writing it.
         await _context.Tracing.StopAsync(new TracingStopOptions { Path = outputPath });
 
         if (outputPath is not null)
@@ -100,8 +93,7 @@ internal sealed class PlaywrightBrowserSession : IBrowserSession
         }
         catch (PlaywrightException exception)
         {
-            // A screenshot is a diagnostic aid. If the page has already crashed or closed, that is
-            // worth a log line but must not replace the real test failure with a teardown error.
+            // A crashed page must not replace the real test failure with a teardown error.
             _logger.LogWarning(exception, "Could not capture a screenshot for {Path}.", outputPath);
             return null;
         }
@@ -109,8 +101,7 @@ internal sealed class PlaywrightBrowserSession : IBrowserSession
 
     public async ValueTask DisposeAsync()
     {
-        // Closing the context flushes video, if it was enabled, and releases the browser's
-        // per-context memory. The shared browser deliberately outlives this.
+        // Flushes video and frees per-context memory. The shared browser outlives this.
         await _context.CloseAsync();
     }
 }

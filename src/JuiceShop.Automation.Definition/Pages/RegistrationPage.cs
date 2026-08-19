@@ -18,9 +18,7 @@ internal sealed class RegistrationPage : PageObjectBase, IRegistrationPage
 
     private ILocator RepeatPasswordField => Page.Locator("#repeatPasswordControl");
 
-    /// <summary>
-    /// The security-question dropdown, which carries no id — only an aria-label.
-    /// </summary>
+    /// <summary>No id on this control — only an aria-label.</summary>
     private ILocator SecurityQuestionSelect =>
         Page.Locator("mat-select[aria-label='Selection list for the security question']");
 
@@ -45,16 +43,10 @@ internal sealed class RegistrationPage : PageObjectBase, IRegistrationPage
 
         await SecurityAnswerField.FillAsync(registration.SecurityAnswer);
 
-        // Registration must be complete before the caller tries to sign in with the new account.
-        // Returning early makes the subsequent login fail against an account the server has not
-        // created yet, and the resulting failure points at whatever the test did next rather than
-        // at registration.
         var response = await ClickAndAwaitResponseAsync(SubmitButton, "/api/Users", "POST");
 
-        // Unlike sign-in, there is no legitimate way for registration to fail here — a non-success
-        // status means the account does not exist. Letting that pass silently is how a registration
-        // problem resurfaces two steps later as "the product card is not visible", on the login page,
-        // with nothing pointing at the real cause. Failing here names it.
+        // No legitimate failure here — a non-success status means the account does not exist.
+        // Failing now names the cause instead of surfacing two steps later.
         if (!response.Ok)
         {
             var body = await response.TextAsync();
@@ -63,11 +55,8 @@ internal sealed class RegistrationPage : PageObjectBase, IRegistrationPage
                 $"({response.StatusText}). Response body: {body}");
         }
 
-        // On success the application routes itself to the login page. Returning before that has
-        // happened hands the caller a page that is about to be replaced: it fills the login form,
-        // Angular then re-renders the component and discards the input, and the submitted credentials
-        // are empty. The sign-in gets a legitimate 401 and the test fails several steps later having
-        // apparently "forgotten" the account it just created.
+        // The app routes itself to login on success. Returning before that hands the caller a page
+        // about to be replaced, and Angular discards whatever it typed. See docs/architecture.md.
         await Expect(SubmitButton).ToHaveCountAsync(
             0, new LocatorAssertionsToHaveCountOptions { Timeout = ExpectTimeout });
     }
@@ -78,34 +67,11 @@ internal sealed class RegistrationPage : PageObjectBase, IRegistrationPage
         await Expect(SubmitButton).ToBeVisibleAsync(VisibleOptions);
     }
 
-    /// <summary>
-    /// Picks a security question from the Material select.
-    /// </summary>
+    /// <summary>Picks a security question from the Material select.</summary>
     /// <remarks>
-    /// <para>
-    /// Opening this dropdown is fiddlier than it looks, and the obvious approaches are all subtly
-    /// wrong. Measured against this build:
-    /// </para>
-    /// <list type="bullet">
-    /// <item>Clicking the select or its <c>.mat-mdc-select-trigger</c> fails: the floating
-    /// <c>mat-label</c> sits inside the notched outline directly over the hit area, and Playwright
-    /// correctly reports that it intercepts pointer events.</item>
-    /// <item><c>PressAsync("Enter")</c> on the select fails: it focuses and sends the key within a
-    /// single call, before Angular has processed the focus event and armed its key handling.</item>
-    /// <item><c>FocusAsync()</c> followed by <c>Keyboard.PressAsync("Enter")</c> works only if a
-    /// delay is inserted between them. That is a race, not a fix — it passes on an idle machine and
-    /// fails under parallel load, which is exactly the flakiness profile that erodes trust in a
-    /// suite.</item>
-    /// </list>
-    /// <para>
-    /// Clicking the arrow wrapper is deterministic with no delay: it sits at the far right of the
-    /// control, clear of the label, so the click lands on the first attempt and still goes through
-    /// Playwright's full actionability check. No forced click, no sleep.
-    /// </para>
-    /// <para>
-    /// Options render into a CDK overlay appended to the document body rather than inside the
-    /// select, so they are located from the page root.
-    /// </para>
+    /// The arrow wrapper, not the select: the floating label sits over the control's hit area and
+    /// intercepts pointer events. See docs/architecture.md — "Prefer the accessible path".
+    /// Options render into a CDK overlay on the body, so they are located from the page root.
     /// </remarks>
     private async Task SelectFirstSecurityQuestionAsync()
     {
@@ -115,8 +81,7 @@ internal sealed class RegistrationPage : PageObjectBase, IRegistrationPage
         await OpenOverlayAsync(arrow, option);
         await option.ClickAsync();
 
-        // The panel animates out after selection, and it overlaps the answer field directly below.
-        // Returning while it is still on screen hands the next fill a covered target.
+        // The panel animates out over the answer field below, covering the next fill's target.
         await Expect(option).ToHaveCountAsync(
             0, new LocatorAssertionsToHaveCountOptions { Timeout = ExpectTimeout });
     }

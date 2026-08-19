@@ -2,22 +2,11 @@ using JuiceShop.Automation.Definition.Pages;
 
 namespace JuiceShop.Automation.Definition.Flows;
 
-/// <summary>
-/// Domain-language assertions about the shopping basket.
-/// </summary>
+/// <summary>Domain-language assertions about the shopping basket.</summary>
 /// <remarks>
-/// <para>
-/// These facades are what a test case is allowed to see. The page contracts themselves are internal
-/// to this assembly, so <see cref="ShopFlow"/> cannot expose them directly even if it wanted to —
-/// a public property returning an internal type does not compile. That is deliberate: it makes
-/// "tests never touch page objects" a property of the type system rather than a convention.
-/// </para>
-/// <para>
-/// The forwarding is deliberately thin. The auto-retrying assertion logic stays in the page objects,
-/// where the locators are, because that is what keeps the retry semantics correct. What this adds is
-/// vocabulary: the test says what should be true of the shop, not which element it should be read
-/// from. It is also the natural home for assertions that span more than one page.
-/// </para>
+/// All a test case is allowed to see: page contracts are internal, so a public property returning
+/// one would not compile. Forwarding is thin by design — the auto-retrying assertions stay with the
+/// locators, and this adds only vocabulary.
 /// </remarks>
 public sealed class BasketAssertions
 {
@@ -67,10 +56,7 @@ public sealed class CatalogAssertions
     /// <summary>Asserts a named product is displayed.</summary>
     public Task ShouldDisplayProductAsync(string productName) => _catalog.ShouldDisplayProductAsync(productName);
 
-    /// <summary>
-    /// Reads the displayed products as plain records, for tests that need to assert on the data
-    /// rather than on the rendering.
-    /// </summary>
+    /// <summary>Reads displayed products as records, for asserting on data rather than rendering.</summary>
     public async Task<IReadOnlyList<Product>> GetVisibleProductsAsync()
     {
         var products = await _catalog.GetVisibleProductsAsync();

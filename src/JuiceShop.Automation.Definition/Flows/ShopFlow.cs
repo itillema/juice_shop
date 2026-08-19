@@ -6,23 +6,11 @@ using Microsoft.Extensions.Options;
 
 namespace JuiceShop.Automation.Definition.Flows;
 
-/// <summary>
-/// The business-action facade that test cases are written against.
-/// </summary>
+/// <summary>The business-action facade that test cases are written against.</summary>
 /// <remarks>
-/// <para>
-/// A flow is a user journey expressed once, in the vocabulary of the shop rather than of the
-/// browser. It composes page objects, which own locators and atomic interactions; the double facade
-/// is what lets a test read as a sequence of intentions while every detail of how those intentions
-/// reach the browser stays one level down.
-/// </para>
-/// <para>
-/// This type builds the page objects itself from the session's page rather than resolving them from
-/// the container. Page objects are per-session and would need a scope the container has no way to
-/// model, and keeping them out of the container is what allows them — and their contracts — to stay
-/// internal to this assembly. That internal visibility is the mechanism that makes it impossible for
-/// a test case to reach a locator.
-/// </para>
+/// A journey in the vocabulary of the shop, not the browser. Page objects are built here from the
+/// session rather than resolved, which keeps them internal and out of a test's reach.
+/// See docs/adr/0003.
 /// </remarks>
 public sealed class ShopFlow
 {
@@ -65,13 +53,8 @@ public sealed class ShopFlow
     /// <summary>Assertions about the login page.</summary>
     public LoginAssertions LoginPage { get; }
 
-    /// <summary>
-    /// Signs in as an existing user and waits for the session to be live.
-    /// </summary>
-    /// <remarks>
-    /// Use <see cref="AttemptLoginAsync"/> when the sign-in is expected to be rejected — this one
-    /// waits for authentication to take effect and will time out if it never does.
-    /// </remarks>
+    /// <summary>Signs in as an existing user and waits for the session to be live.</summary>
+    /// <remarks>Use <see cref="AttemptLoginAsync"/> when rejection is expected; this one times out.</remarks>
     public async Task<ShopFlow> LoginAsAsync(Credentials credentials)
     {
         await _login.OpenAsync();

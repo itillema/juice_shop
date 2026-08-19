@@ -3,15 +3,10 @@ using NUnit.Framework;
 
 namespace JuiceShop.Automation.Execution.Tests;
 
-/// <summary>
-/// Shopping basket management.
-/// </summary>
+/// <summary>Shopping basket management.</summary>
 /// <remarks>
-/// Every test here registers its own account rather than reusing a seeded one. That is not
-/// ceremony: the seeded customers ship with items already in their baskets, so a shared account
-/// would make "the basket contains one line" depend on what the seed happened to contain and on
-/// whichever test ran previously. A fresh account starts with an empty basket by construction, and
-/// the tests stay order-independent and safe to run in parallel.
+/// Each test registers its own account: the seeded customers ship with items already in their
+/// baskets. See docs/architecture.md — "Test isolation".
 /// </remarks>
 [TestFixture]
 [Category(TestCategories.Basket)]

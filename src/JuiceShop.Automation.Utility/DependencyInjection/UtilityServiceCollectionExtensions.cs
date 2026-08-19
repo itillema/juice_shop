@@ -10,14 +10,10 @@ using Serilog.Extensions.Logging;
 
 namespace JuiceShop.Automation.Utility.DependencyInjection;
 
-/// <summary>
-/// Registers the framework: configuration, logging, the browser driver and artifact capture.
-/// </summary>
+/// <summary>Registers the framework: configuration, logging, driver and artifact capture.</summary>
 public static class UtilityServiceCollectionExtensions
 {
     /// <summary>Adds the framework services.</summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="configuration">Configuration root, normally from <see cref="ConfigurationFactory"/>.</param>
     /// <param name="baseDirectory">Test binary directory, used to resolve relative artifact paths.</param>
     public static IServiceCollection AddUtilityLayer(
         this IServiceCollection services,
@@ -30,8 +26,7 @@ public static class UtilityServiceCollectionExtensions
 
         services.AddSingleton(configuration);
 
-        // ValidateOnStart turns a malformed appsettings.json into an immediate, readable failure
-        // instead of a NullReferenceException somewhere in the middle of the first test.
+        // ValidateOnStart turns a malformed appsettings.json into an immediate, readable failure.
         services
             .AddOptions<AutomationSettings>()
             .Bind(configuration.GetSection(AutomationSettings.SectionName))

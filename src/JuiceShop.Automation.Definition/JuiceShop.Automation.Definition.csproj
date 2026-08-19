@@ -1,15 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    DEFINITION — what the SUT is and how a business action is performed against it:
-    page objects, flows, and test data.
+    DEFINITION — what the SUT is and how a business action is performed: pages, flows, test data.
 
-    This is the layer that changes when the application changes. A relocated button is a page-object
-    edit; a new step in checkout is a flow edit; neither reaches the test cases.
+    The layer that changes when the application does. A relocated button is a page-object edit, a
+    new checkout step is a flow edit; neither reaches the test cases.
 
-    Page objects and their contracts are internal to this assembly. Only the flows and the test data
-    are public, so a test case physically cannot reach a locator — the compiler stops it, with no
-    architecture rule needed.
+    Page objects and contracts are internal, so the compiler — not a rule — stops a test case
+    reaching a locator.
   -->
 
   <PropertyGroup>

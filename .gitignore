@@ -1,33 +1,24 @@
 # ---------------------------------------------------------------------------------------------
-# Anchoring rules — read before adding a pattern.
+# ANCHORING RULE: anything that is a repo-root output gets a leading slash. Leave a pattern
+# unanchored only if it must match at every depth.
 #
-# A pattern with no leading slash and no interior slash matches at EVERY depth, and on Windows
-# core.ignorecase=true it matches case-insensitively too. That combination is how a bare
-# `artifacts/` silently swallowed src/JuiceShop.Automation.Utility/Artifacts/ — a SOURCE folder.
-# Its two files were never committed on any branch, `git status` stayed clean, MSBuild does not
-# read .gitignore so local builds passed, and the only symptom was CS0246 in CI.
-#
-# Rule: leave a pattern unanchored only if it must genuinely match at every depth. Anything that
-# is a repo-root output gets a leading slash.
+# An unanchored pattern matches at EVERY depth, case-insensitively on Windows. That is how a bare
+# `artifacts/` swallowed the SOURCE folder Utility/Artifacts/: never committed, `git status` clean,
+# local builds fine (MSBuild ignores .gitignore), and CS0246 in CI the only symptom.
 # ---------------------------------------------------------------------------------------------
 
-# Build output. Unanchored on purpose — one per project. `bin/` already covers bin/Debug,
-# bin/Release, and the whole runtime artifact tree the tests write underneath it:
-# bin/<cfg>/net10.0/artifacts/{traces,screenshots,videos,logs} and .../allure-results.
+# Build output, one per project. Covers the runtime artifact tree written underneath it.
 bin/
 obj/
 
-# Repo-root test output. `artifacts/test-results` is .runsettings' ResultsDirectory, which VSTest
-# resolves relative to the directory holding the .runsettings file — this one, the repo root.
+# Repo-root test output — .runsettings' ResultsDirectory, resolved against the repo root.
 /artifacts/
 *.trx
 
-# VSTest's fallback results directory, created next to whichever project ran. Left unanchored
-# because it can appear under any project.
+# VSTest's fallback directory, created next to whichever project ran.
 TestResults/
 
-# Allure. Raw results live under bin/ and are already covered. These only ever appear at the repo
-# root — from `allure generate` locally, or the report action and history checkout in CI.
+# Allure. Raw results under bin/ are already covered; these only appear at the repo root.
 /allure-results/
 /allure-report/
 /allure-history/

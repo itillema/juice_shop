@@ -6,9 +6,8 @@ namespace JuiceShop.Automation.Adaptation.DependencyInjection;
 
 /// <summary>Registers the Adaptation layer's integrations.</summary>
 /// <remarks>
-/// Each layer owns its own registration extension and the composition root calls them. That keeps
-/// the wiring honest — a layer cannot appear in the container without its project being referenced
-/// by the composition root, so the reference graph in the .csproj files is the real one.
+/// Each layer owns its registration extension, so a layer cannot reach the container without the
+/// composition root referencing its project.
 /// </remarks>
 public static class AdaptationServiceCollectionExtensions
 {

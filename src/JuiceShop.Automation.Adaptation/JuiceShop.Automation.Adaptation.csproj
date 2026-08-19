@@ -1,17 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    ADAPTATION — connections to everything outside the test system: external services, protocols,
-    databases and integrations.
+    ADAPTATION — everything outside the test system: services, protocols, databases, integrations.
 
-    In a UI-driven suite this layer is deliberately small: the only non-browser channel to the SUT is
-    HTTP, used to establish that Juice Shop is actually serving before any test runs. It is a
-    separate project rather than a folder because it is the seam that grows — an API client, a
-    database fixture or a message-queue probe all belong here, and none of them should require
-    touching the driver, the flows or the tests.
+    Small in a UI-driven suite: the only non-browser channel is the HTTP readiness probe. A separate
+    project rather than a folder because it is the seam that grows — an API client or database
+    fixture belongs here, and neither should touch the driver, the flows or the tests.
 
-    It implements ports declared in Utility, so the framework can use an integration without
-    depending on it. The concrete adapter is bound at the composition root in Execution.
+    Implements ports declared in Utility; bound at the composition root in Execution.
   -->
 
   <PropertyGroup>
