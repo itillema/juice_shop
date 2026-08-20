@@ -40,3 +40,5 @@ TestResults/
 # OS
 .DS_Store
 Thumbs.db
+
+.fake
