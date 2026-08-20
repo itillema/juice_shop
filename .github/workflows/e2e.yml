@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write        # publishing the Allure report to the gh-pages branch
-  checks: write          # test-reporter's check run
-  pull-requests: write   # test summary comment
+  contents: write # publishing the Allure reports to the gh pages branch
+  checks: write # test-reporter's check run
+  pull-requests: write # test summary comment
 
 concurrency:
   group: e2e-${{ github.ref }}
@@ -19,7 +19,7 @@ env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   AUTOMATION_ENVIRONMENT: Ci
-  TEST_OUTPUT_DIR: src/JuiceShop.Automation.Definition/bin/Release/net10.0
+  TEST_OUTPUT_DIR: src/JuiceShop.Automation.Execution/bin/Release/net10.0
 
 jobs:
   test:
@@ -36,17 +36,15 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Start OWASP Juice Shop
-        # --wait blocks until the compose healthcheck passes. The image ships no HEALTHCHECK of its
-        # own and takes 20-60s to seed its database, so without the healthcheck defined in
-        # docker-compose.yml this would return while the app is still starting and every test in
-        # the first fixture would race it.
+        # --wait blocks on the compose healthcheck. The image ships none of its own and takes
+        # 20-60s to seed, so without it the first fixture races a still-starting app.
         run: docker compose up -d --wait --wait-timeout 240
 
       - name: Build
+        id: build
         run: dotnet build -c Release
 
-      # Browsers are cached against the Playwright version. The install itself is driven from the
-      # test run (Microsoft.Playwright.Program.Main), so no PowerShell is required here either.
+      # Browsers are cached against the Playwright version. The install itself is driven from the test run, so no PowerShell is required here either.
       - name: Cache Playwright browsers
         uses: actions/cache@v6
         with:
@@ -54,21 +52,25 @@ jobs:
           key: playwright-${{ runner.os }}-1.61.0
 
       - name: Run tests
-        # -c Release --no-build matters: a bare `dotnet test` after a Release build silently
-        # rebuilds in Debug and runs different binaries from the ones just built.
+        id: tests
+        # -c Release --no-build ensures no silent rebuilds in debug
         run: >
           dotnet test -c Release --no-build
           --settings .runsettings
+          --results-directory "${{ github.workspace }}/artifacts/test-results"
           --logger "trx;LogFileName=test-results.trx"
 
       - name: Juice Shop logs
         if: failure()
         run: docker compose logs --no-color juice-shop
 
-      # Every reporting step is if: always(). Without it a failing `dotnet test` short-circuits the
-      # job and nothing is uploaded — precisely when the trace is most needed.
+      # Reporting tail. Each step is gated on the artifact it consumes, so it goes grey rather than
+      # red when there is nothing to report. `!cancelled()` not `always()`: a superseded run must
+      # not half-publish Pages. The ${{ }} wrapper is mandatory on an `if:` starting with `!`.
+
+      # Not gated on tests passing — a red run is when the trace is wanted.
       - name: Upload failure artifacts
-        if: always()
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         uses: actions/upload-artifact@v7
         with:
           name: playwright-artifacts
@@ -79,7 +81,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Publish test results
-        if: always()
+        if: ${{ !cancelled() && hashFiles('artifacts/test-results/*.trx') != '' }}
         uses: dorny/test-reporter@v3
         with:
           name: NUnit results
@@ -88,11 +90,11 @@ jobs:
           fail-on-error: false
 
       # ---- Allure report on GitHub Pages -------------------------------------------------
-      # Requires Settings -> Pages -> Source = "Deploy from a branch" -> gh-pages -> / (root).
-      # Until that is enabled the two steps below simply publish a branch nobody reads.
+      # Set Settings -> Pages -> Source = gh-pages AFTER the first successful main run creates it.
 
       - name: Fetch existing report history
-        if: always()
+        # Expected to fail on the first run; the report action creates the directory itself.
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         uses: actions/checkout@v7
         continue-on-error: true
         with:
@@ -100,7 +102,9 @@ jobs:
           path: gh-pages
 
       - name: Build Allure report
-        if: always()
+        id: allure
+        # `allure generate` fails outright on a missing directory, and this action does not guard it.
+        if: ${{ !cancelled() && hashFiles(format('{0}/allure-results/*-result.json', env.TEST_OUTPUT_DIR)) != '' }}
         uses: simple-elf/allure-report-action@v1.15
         with:
           allure_results: ${{ env.TEST_OUTPUT_DIR }}/allure-results
@@ -110,7 +114,9 @@ jobs:
           keep_reports: 20
 
       - name: Publish report to GitHub Pages
-        if: always() && github.ref == 'refs/heads/main'
+        # An empty publish_dir gives "src refspec gh-pages does not match any" — nothing to commit,
+        # so the local ref is never created.
+        if: ${{ !cancelled() && github.ref == 'refs/heads/main' && steps.allure.outcome == 'success' }}
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -124,16 +130,40 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Asks the inverse of the obvious check: of the files that ARE committed, would .gitignore
+      # have excluded any? (An ignored file is absent after checkout, so the obvious check passes
+      # vacuously.) Neither flag is optional — `core.ignorecase=true` because the bug only
+      # reproduces on a case-insensitive clone, `--no-index` because check-ignore skips tracked
+      # paths without it, and every path here is tracked.
+      - name: Guard against .gitignore shadowing committed source
+        shell: bash
+        run: |
+          # check-ignore exits 1 when nothing matches, which is the success case under -eo pipefail.
+          shadowed=$(git ls-files -- 'src/*' '.github/*' \
+            | git -c core.ignorecase=true check-ignore --no-index --stdin --verbose || true)
+          if [ -n "$shadowed" ]; then
+            echo "::error::.gitignore matches files that are committed. On a case-insensitive"
+            echo "::error::filesystem these can be dropped from a clone and CI will fail to build."
+            echo "::error::Anchor the offending pattern with a leading slash."
+            echo "$shadowed"
+            exit 1
+          fi
+          echo "No committed source file is matched by .gitignore."
+
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
-      # Two complementary checks. `dotnet format` catches whitespace and using-ordering drift from
-      # an IDE that ignored .editorconfig; the build catches analyser and code-style violations,
-      # which are errors here because Directory.Build.props sets TreatWarningsAsErrors.
+      # Complementary: format catches whitespace and using-order drift, the build catches analyser
+      # violations (errors here, via TreatWarningsAsErrors).
       - name: Verify formatting
         run: dotnet format --verify-no-changes --severity warn
 
       - name: Build with analysers
         run: dotnet build -c Release
+
+      # Deliberately in the job with NO container. One eager await in AutomationRuntime.StartAsync
+      # would recouple these rules to Docker, and that regression is invisible where the SUT is up.
+      - name: Architecture rules
+        run: dotnet test -c Release --no-build --filter "TestCategory=Architecture"

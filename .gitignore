@@ -1,20 +1,28 @@
-# Build output
+# ---------------------------------------------------------------------------------------------
+# ANCHORING RULE: anything that is a repo-root output gets a leading slash. Leave a pattern
+# unanchored only if it must match at every depth.
+#
+# An unanchored pattern matches at EVERY depth, case-insensitively on Windows. That is how a bare
+# `artifacts/` swallowed the SOURCE folder Utility/Artifacts/: never committed, `git status` clean,
+# local builds fine (MSBuild ignores .gitignore), and CS0246 in CI the only symptom.
+# ---------------------------------------------------------------------------------------------
+
+# Build output, one per project. Covers the runtime artifact tree written underneath it.
 bin/
 obj/
-[Dd]ebug/
-[Rr]elease/
-artifacts/
 
-# Test + automation artifacts
-allure-results/
-allure-report/
-allure-history/
-playwright-traces/
-screenshots/
-videos/
-logs/
+# Repo-root test output — .runsettings' ResultsDirectory, resolved against the repo root.
+/artifacts/
 *.trx
+
+# VSTest's fallback directory, created next to whichever project ran.
 TestResults/
+
+# Allure. Raw results under bin/ are already covered; these only appear at the repo root.
+/allure-results/
+/allure-report/
+/allure-history/
+/gh-pages/
 
 # Playwright auth state — contains live session cookies and tokens
 .auth/
@@ -32,3 +40,5 @@ TestResults/
 # OS
 .DS_Store
 Thumbs.db
+
+.fake

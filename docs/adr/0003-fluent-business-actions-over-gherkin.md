@@ -43,6 +43,7 @@ the compiler rather than by convention.
 - Reqnroll would need a DI plugin and a `[ScenarioDependencies]` factory to coexist with
   `Microsoft.Extensions.DependencyInjection`, since it uses its own BoDi container. Avoided.
 - If a stakeholder audience appears later, Gherkin can be layered on top of the same flows without
-  touching the Adaptation layer — the flows are already the step-definition bodies.
+  touching the page objects — the flows are already the step-definition bodies.
 - The assertion facades (`Flows/Assertions.cs`) are thin forwarding types. That is a real cost, paid
-  deliberately so test cases never name an Adaptation type; see ADR-0005.
+  deliberately: the page contracts are internal to the Definition assembly, so a public property
+  returning one would not compile. See ADR-0005.

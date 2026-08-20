@@ -1,22 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RunSettings>
 
-  <!--
-    Note there is no <Playwright> section here. Browser configuration lives in appsettings.json,
-    owned by the Utility layer, because this solution does not use Microsoft.Playwright.NUnit's
-    test adapter (see ADR-0002). That also sidesteps the trap where enabling
-    Microsoft.Testing.Platform makes the <Playwright> section silently do nothing.
-  -->
+  <!-- No <Playwright> section: browser config lives in appsettings.json. See ADR-0002. -->
 
   <RunConfiguration>
     <ResultsDirectory>artifacts/test-results</ResultsDirectory>
   </RunConfiguration>
 
   <NUnit>
-    <!--
-      Fixtures run in parallel with each other; tests inside a fixture stay sequential. Each
-      fixture owns its own browser context, so this is the safe level. Never ParallelScope.Children.
-    -->
+    <!-- Fixtures parallel, tests within a fixture sequential. Never ParallelScope.Children. -->
     <NumberOfTestWorkers>4</NumberOfTestWorkers>
     <DefaultTestNamePattern>{m}{a}</DefaultTestNamePattern>
   </NUnit>

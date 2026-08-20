@@ -2,9 +2,8 @@
 #
 # Starts the system under test and runs the automated test suite.
 #
-# Deliberately thin. It only starts the container and calls `dotnet test` — browser installation,
-# SUT readiness and artifact handling are the framework's job, not a shell script's, so the same
-# behaviour applies whether you run this script, `dotnet test` directly, or the tests from an IDE.
+# Thin by design: browser install, SUT readiness and artifacts are the framework's job, so this
+# script, a bare `dotnet test` and an IDE run all behave the same.
 #
 # Usage:
 #   ./run.sh
@@ -24,9 +23,20 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo "==> Starting OWASP Juice Shop"
-# --wait blocks until the healthcheck passes. Without the healthcheck defined in
-# docker-compose.yml it would only wait for "running", which is ~30s too early.
+# --wait blocks on the healthcheck; without it, "running" is ~30s too early.
 docker compose up -d --wait --wait-timeout 240
+
+echo "==> Checking for source files hidden by .gitignore"
+# Only works locally, where an ignored file still exists on disk — CI never checks one out.
+# MSBuild ignores .gitignore, so the build below would compile a file CI can never see.
+shadowed=$(git ls-files --others --ignored --exclude-standard -- 'src/*' \
+    ':(exclude)src/*/bin/*' ':(exclude)src/*/obj/*')
+if [[ -n "$shadowed" ]]; then
+    echo "These files exist on disk but .gitignore excludes them. They will never reach CI:" >&2
+    echo "$shadowed" >&2
+    echo "Anchor the offending .gitignore pattern with a leading slash before continuing." >&2
+    exit 1
+fi
 
 echo "==> Building"
 dotnet build -c Release
@@ -45,7 +55,7 @@ if [[ $TEST_EXIT -eq 0 ]]; then
     echo "All tests passed."
 else
     echo "Tests failed. Traces and screenshots:"
-    echo "  src/JuiceShop.Automation.Definition/bin/Release/net10.0/artifacts/"
+    echo "  src/JuiceShop.Automation.Execution/bin/Release/net10.0/artifacts/"
     echo "  View a trace by dragging the .zip onto https://trace.playwright.dev"
 fi
 

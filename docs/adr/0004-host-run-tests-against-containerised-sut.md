@@ -24,7 +24,8 @@ Juice Shop's packaging constrains the options:
 - Define a healthcheck in exec form invoking the bundled Node binary, so
   `docker compose up --wait` means "ready", not "process started".
 - Mount `config/e2e.yml` and set `NODE_ENV=e2e` for deterministic, notification-free behaviour.
-- Re-check readiness from inside the run via `SutReadinessGate`.
+- Re-check readiness from inside the run via `HttpSutReadinessGate` in the Adaptation layer, reached
+  through the `ISutReadinessGate` port so the framework never learns the protocol.
 
 ## Alternatives considered
 
@@ -48,4 +49,4 @@ is open but not serving. Compose also means one file serves both local developme
 - `docker compose restart` is a complete state reset, so no volume is needed — and mounting one at
   `/juice-shop/data` would only risk permission errors against UID 65532.
 - The healthcheck is coupled to an undocumented path (`/nodejs/bin/node`). Verified against the image;
-  `SutReadinessGate` is the backstop if a future image moves it.
+  `HttpSutReadinessGate` is the backstop if a future image moves it.

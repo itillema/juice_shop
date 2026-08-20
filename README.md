@@ -2,8 +2,8 @@
 
 [![e2e](https://github.com/YOUR-USERNAME/juice-shop-automation/actions/workflows/e2e.yml/badge.svg)](https://github.com/YOUR-USERNAME/juice-shop-automation/actions/workflows/e2e.yml)
 
-A UI end-to-end automation solution built on **NUnit + Playwright for .NET 10**, structured around the
-**ISTQB generic Test Automation Architecture (gTAA)**, testing a containerised
+A UI end-to-end automation solution built on **NUnit + Playwright for .NET 10**, structured as a
+four-layer **gTAA** test automation architecture, testing a containerised
 [OWASP Juice Shop](https://owasp.org/www-project-juice-shop/).
 
 The system under test runs in Docker and is pinned by image digest, so a clone of this repository
@@ -26,8 +26,8 @@ themselves on first run through Playwright's .NET API.
 
 | | |
 |---|---|
-| **Layered architecture** | Four .NET projects mapped onto the gTAA, with dependency direction enforced by the compiler |
-| **Architecture as tests** | 5 NetArchTest rules that fail the build if a layer boundary is crossed |
+| **Layered architecture** | Four .NET projects with a single-direction dependency graph enforced by the compiler |
+| **Architecture as tests** | 6 NetArchTest rules that fail the build if a layer boundary is crossed |
 | **Deterministic SUT** | Image pinned by digest, config overlay mounted, container healthcheck for a distroless image |
 | **Diagnosable failures** | Playwright trace + screenshot on failure only, attached to the test result |
 | **Parallel-safe** | Fixture-level parallelism, isolated browser context per test, self-provisioning test data |
@@ -37,25 +37,41 @@ themselves on first run through Playwright's .NET API.
 
 ## Architecture
 
+Four layers, each a separate .NET project.
+
+| Layer | Owns | Contents |
+|---|---|---|
+| **Execution** | The test cases | Fixtures, categories, assembly setup, architecture rules. Also the composition root. |
+| **Definition** | What the SUT is, and how an action is performed against it | Page objects, flows, test data |
+| **Adaptation** | Connections to anything outside the test system | External services, protocols, integrations, data stores |
+| **Utility** | The framework itself | Configuration, logging, DI wiring, reporting, run lifecycle, Playwright driver, base classes |
+
 ```
-┌───────────────────────────────────────────────────────────────────────┐
-│  Definition      Flows/   business actions — the vocabulary of a test │
-│                  Tests/   the test cases themselves                   │
-└──────────────────────────────┬────────────────────────────────────────┘
-                               │ depends on
-┌──────────────────────────────▼────────────────────────────────────────┐
-│  Execution       run lifecycle, SUT readiness, artifact capture,      │
-│                  DI composition root, reporting integration           │
-└──────────────────────────────┬────────────────────────────────────────┘
-                               │ depends on
-┌──────────────────────────────▼────────────────────────────────────────┐
-│  Adaptation      Playwright driver + page objects                     │
-│                  ← the ONLY project referencing Microsoft.Playwright  │
-└──────────────────────────────┬────────────────────────────────────────┘
-                               │ depends on
-┌──────────────────────────────▼────────────────────────────────────────┐
-│  Utility         configuration, logging, DI wiring, test data         │
-└───────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Execution     Tests/          the test cases — business intent only        │
+│                Architecture/   layering rules, asserted at test time        │
+│                GlobalSetup     composition root: binds every layer          │
+└───────────────┬──────────────────────────────────┬──────────────────────────┘
+                │                                  │
+┌───────────────▼──────────────────┐  ┌────────────▼──────────────────────────┐
+│  Definition                      │  │  Adaptation                           │
+│    Pages/     locators, atomic   │  │    Sut/  HTTP readiness integration   │
+│               interactions       │  │                                       │
+│    Flows/     business actions   │  │  ← where an API client, a database    │
+│    TestData/  users, generators  │  │    fixture or a queue probe goes      │
+└───────────────┬──────────────────┘  └────────────┬──────────────────────────┘
+                │                                  │
+┌───────────────▼──────────────────────────────────▼──────────────────────────┐
+│  Utility     Driver/         Playwright session, browser lifecycle          │
+│              Runtime/        run lifecycle, DI composition machinery        │
+│              Artifacts/      trace + screenshot capture, reporting paths    │
+│              Configuration/  strongly typed, validated settings             │
+│              Logging/        Serilog behind ILogger<T>, NUnit sink          │
+│              Testing/        E2ETestBase                                    │
+│              Sut/            ISutReadinessGate — port, implemented above    │
+│                                                                             │
+│              ← no project references: depends on no other layer             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 A test reads as a sequence of business intentions:
@@ -76,34 +92,20 @@ public async Task Customer_Can_Add_Product_To_Basket()
 }
 ```
 
-No locators, no `IPage`, no waits. Those cannot appear here even by accident — the page objects are
-`internal`, and an architecture test fails the build if a fixture references the Adaptation assembly.
+No locators, no `IPage`, no waits. Those cannot appear here even by accident: page objects and their
+contracts are `internal` to the Definition assembly, so the compiler stops a test from naming one,
+and an architecture rule fails the build if a test references Playwright directly.
 
-Full rationale, including the gTAA mapping and where this deviates from the syllabus, is in
-[docs/architecture.md](docs/architecture.md). Design decisions are recorded as
-[ADRs](docs/adr/).
+Full rationale in [docs/architecture.md](docs/architecture.md); decisions and rejected alternatives
+in the [ADRs](docs/adr/).
 
----
+### The one non-obvious edge
 
-## A note on gTAA terminology
-
-This solution is organised as Adaptation / Definition / Execution / Utility, and it is worth being
-precise about how that maps to the standard, because it is not one-to-one:
-
-- **ISTQB CTAL-TAE v2.0** (the current syllabus, GA May 2024) presents test generation, definition,
-  execution and adaptation as **capabilities**, not layers — §3.1.1 is headed *"Capabilities provided
-  by test automation tools and libraries"*. Only *test adaptation layer* survives as a keyword. The
-  2016 edition, which does call them layers, was retired for English exams in June 2025.
-- **"Utility" is not a gTAA layer** in either edition. It is a practitioner convention. Here it is the
-  realisation of the **configuration-management concern** (2016 §3.1.6 / v2.0 §5.1.2), plus the
-  data-derivation slice of the **Test Generation** capability (2016 §3.1.2).
-- v2.0's examinable *layering* model is a different, three-layer one (§3.1.3): **test scripts /
-  business logic / core libraries**, with the rule *"no direct calls should be made to the core
-  libraries from test scripts."*
-
-The four projects satisfy both models simultaneously; see
-[docs/architecture.md](docs/architecture.md) for the mapping table. That last rule is not a
-convention here — `ArchitectureTests` turns it into a failing build.
+The run lifecycle lives in Utility and has to wait for the SUT before any test starts — but talking
+to the SUT is Adaptation's job. Taken literally that is a cycle. It is resolved with a port and an
+adapter: `ISutReadinessGate` is declared in Utility, implemented over HTTP in Adaptation, and bound
+at the composition root in Execution. Utility therefore references no other project, and the
+framework never learns which protocol the SUT speaks.
 
 ---
 
@@ -130,8 +132,9 @@ Categories: `Smoke`, `Regression`, `Authentication`, `Catalog`, `Basket`, `Archi
 
 ### Configuration
 
-`appsettings.json` in the Definition project, overridable per environment
-(`AUTOMATION_ENVIRONMENT=Ci`) and by environment variable. The separator is a **double** underscore:
+`appsettings.json` in the Execution project — it sits next to the test binary because that is where
+configuration is read from. Overridable per environment (`AUTOMATION_ENVIRONMENT=Ci`) and by
+environment variable, where the separator is a **double** underscore:
 
 ```bash
 AUTOMATION__SUT__BASEURL=http://juice-shop:3000
@@ -140,13 +143,17 @@ AUTOMATION__BROWSER__HEADLESS=false
 AUTOMATION__BROWSER__SLOWMOMILLISECONDS=500     # useful when demoing a run
 ```
 
+Note `Browser:SessionCookies`. Juice Shop needs three cookies set before the first navigation to
+suppress the welcome dialog and cookie banner and to pin the locale. They live in configuration
+rather than in the driver, so the driver itself carries no knowledge of the application under test.
+
 ### When a test fails
 
 Failures write a screenshot and a full Playwright trace, attached to the test result and uploaded by
 CI:
 
 ```
-src/JuiceShop.Automation.Definition/bin/Release/net10.0/artifacts/
+src/JuiceShop.Automation.Execution/bin/Release/net10.0/artifacts/
 ├── screenshots/<test>.png
 └── traces/<test>.zip     ← drag onto https://trace.playwright.dev
 ```
@@ -159,18 +166,18 @@ writes **nothing** — artifacts are cleared at the start of each run, so their 
 
 ## Test coverage
 
-22 tests: 17 browser-driven, 5 architecture.
+23 tests: 17 browser-driven, 6 architecture.
 
 | Area | Covers |
 |---|---|
 | Authentication | Valid sign-in, rejected credentials, sign-out, registration then sign-in |
 | Catalogue | Search hit, empty state, search narrowing, price rendering, per-product searches |
 | Basket | Add, quantity increment, add-twice merging, removal, distinct lines, empty basket |
-| Architecture | Playwright confinement, layer direction, page-object visibility, public-API purity, test-script isolation |
+| Architecture | Utility isolation, sibling isolation, Playwright confinement, page-object visibility, public-API purity |
 
 Scope is deliberately UI end-to-end. API-level and security-challenge testing would each be a
-worthwhile extension; the Adaptation layer is where an API adapter would slot in without touching a
-single test case.
+worthwhile extension, and the Adaptation layer is where they would land — an API client added there
+requires no change to the driver, the flows or the test cases.
 
 ---
 

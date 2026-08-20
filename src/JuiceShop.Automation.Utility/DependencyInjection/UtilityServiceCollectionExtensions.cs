@@ -1,7 +1,7 @@
 using JuiceShop.Automation.Utility.Artifacts;
 using JuiceShop.Automation.Utility.Configuration;
+using JuiceShop.Automation.Utility.Driver;
 using JuiceShop.Automation.Utility.Logging;
-using JuiceShop.Automation.Utility.TestData;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -10,19 +10,10 @@ using Serilog.Extensions.Logging;
 
 namespace JuiceShop.Automation.Utility.DependencyInjection;
 
-/// <summary>
-/// Registers the Utility layer: configuration, logging and test data.
-/// </summary>
-/// <remarks>
-/// Each layer owns its own registration extension and the Execution layer composes them. That
-/// keeps the composition root honest — a layer cannot be wired into the container without its
-/// own project being referenced, so the dependency graph in the .csproj files is the real one.
-/// </remarks>
+/// <summary>Registers the framework: configuration, logging, driver and artifact capture.</summary>
 public static class UtilityServiceCollectionExtensions
 {
-    /// <summary>Adds configuration binding, logging and test-data services.</summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="configuration">Configuration root, normally from <see cref="ConfigurationFactory"/>.</param>
+    /// <summary>Adds the framework services.</summary>
     /// <param name="baseDirectory">Test binary directory, used to resolve relative artifact paths.</param>
     public static IServiceCollection AddUtilityLayer(
         this IServiceCollection services,
@@ -35,8 +26,7 @@ public static class UtilityServiceCollectionExtensions
 
         services.AddSingleton(configuration);
 
-        // ValidateOnStart turns a malformed appsettings.json into an immediate, readable failure
-        // instead of a NullReferenceException somewhere in the middle of the first test.
+        // ValidateOnStart turns a malformed appsettings.json into an immediate, readable failure.
         services
             .AddOptions<AutomationSettings>()
             .Bind(configuration.GetSection(AutomationSettings.SectionName))
@@ -58,7 +48,10 @@ public static class UtilityServiceCollectionExtensions
 
         services.AddLogging();
 
-        services.AddSingleton<RegistrationDataFactory>();
+        // One browser for the run; one context per test. See ISessionFactory.
+        services.AddSingleton<ISessionFactory, PlaywrightSessionFactory>();
+
+        services.AddScoped<ArtifactCollector>();
 
         return services;
     }

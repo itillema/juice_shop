@@ -1,11 +1,8 @@
 <Project>
 
   <!--
-    Central Package Management. Every version in the solution is declared here exactly once;
-    project files carry <PackageReference Include="..." /> with no Version attribute.
-
-    Transitive pinning is on so that a transitive dependency cannot silently float to a version
-    nobody reviewed.
+    Central Package Management: every version declared once here, project files carry no Version.
+    Transitive pinning is on so a transitive dependency cannot float to an unreviewed version.
   -->
 
   <PropertyGroup>
@@ -14,10 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup Label="Browser automation">
-    <!--
-      Adaptation layer only. Note we reference Microsoft.Playwright, NOT Microsoft.Playwright.NUnit:
-      the NUnit base classes would leak IPage into every test class. See ADR-0002.
-    -->
+    <!-- Microsoft.Playwright, NOT .NUnit: its base classes leak IPage into every test. ADR-0002. -->
     <PackageVersion Include="Microsoft.Playwright" Version="1.61.0" />
   </ItemGroup>
 

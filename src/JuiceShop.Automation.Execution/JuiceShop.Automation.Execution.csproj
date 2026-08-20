@@ -1,35 +1,57 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    EXECUTION — ISTQB CTAL-TAE 2016 section 3.1.4.
+    EXECUTION — the test cases: fixtures, categories, assembly setup, architecture rules.
 
-    Note this layer is deliberately more than "the test runner". Section 3.1.4 also requires
-    setting up and tearing down the SUT, configuring and parameterising the test setup,
-    instrumenting for filtered logging, and validating/collecting results — none of which NUnit
-    provides. That is what SutReadinessGate, GlobalSetup and ArtifactCollector are.
+    Also the composition root, the one place that should know every layer at once — GlobalSetup
+    binds Adaptation and Definition into the container Utility builds.
 
-    No Microsoft.Playwright reference here: artifact capture goes through the technology-free
-    IBrowserSession contract from the Adaptation layer.
+    A test here reads as business intent: no locators, no waits, no browser types.
   -->
 
   <PropertyGroup>
     <RootNamespace>JuiceShop.Automation.Execution</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- Explicitly stay on VSTest: Microsoft.Testing.Platform changes logger/adapter wiring. -->
+    <EnableNUnitRunner>false</EnableNUnitRunner>
+
+    <!--
+      `dotnet test` does not discover .runsettings on its own. Pointing at it here means a bare
+      `dotnet test`, an IDE run and CI all get the same worker count and results directory.
+    -->
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory)..\..\.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="NUnit.Analyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="NetArchTest.Rules" />
     <PackageReference Include="Allure.NUnit" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-    <PackageReference Include="Microsoft.Extensions.Logging" />
-    <PackageReference Include="Microsoft.Extensions.Options" />
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The composition root references every layer. Nothing else in the solution does. -->
+    <ProjectReference Include="..\JuiceShop.Automation.Definition\JuiceShop.Automation.Definition.csproj" />
     <ProjectReference Include="..\JuiceShop.Automation.Adaptation\JuiceShop.Automation.Adaptation.csproj" />
     <ProjectReference Include="..\JuiceShop.Automation.Utility\JuiceShop.Automation.Utility.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Microsoft.NET.Sdk does not copy these automatically the way the Web SDK does. Without this,
+      IConfiguration binds nothing and Allure ignores its config — both silently. They live here
+      rather than in Utility because configuration is read relative to the test binary.
+    -->
+    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="appsettings.*.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="allureConfig.json" CopyToOutputDirectory="Always" />
   </ItemGroup>
 
 </Project>

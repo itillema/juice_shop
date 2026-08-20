@@ -1,25 +1,12 @@
-using JuiceShop.Automation.Adaptation.Contracts.Pages;
+using JuiceShop.Automation.Definition.Pages;
 
 namespace JuiceShop.Automation.Definition.Flows;
 
-/// <summary>
-/// Domain-language assertions about the shopping basket.
-/// </summary>
+/// <summary>Domain-language assertions about the shopping basket.</summary>
 /// <remarks>
-/// <para>
-/// These facades exist so that a test case never names a type from the Adaptation layer. An earlier
-/// version of <see cref="ShopFlow"/> simply re-exposed the page contracts
-/// (<c>public IBasketPage Basket =&gt; session.Basket</c>), which read fine but meant every fixture
-/// carried a compile-time dependency on the adapters — the exact coupling ISTQB CTAL-TAE v2.0
-/// §3.1.3 rules out with "no direct calls should be made to the core libraries from test scripts".
-/// <c>ArchitectureTests</c> caught it.
-/// </para>
-/// <para>
-/// The forwarding is deliberately thin. The auto-retrying assertion logic stays in the page objects,
-/// where the locators are, because that is what keeps the retry semantics correct. What this layer
-/// contributes is vocabulary: the test says what should be true of the shop, not which element it
-/// should be read from. It is also the natural home for assertions that span more than one page.
-/// </para>
+/// All a test case is allowed to see: page contracts are internal, so a public property returning
+/// one would not compile. Forwarding is thin by design — the auto-retrying assertions stay with the
+/// locators, and this adds only vocabulary.
 /// </remarks>
 public sealed class BasketAssertions
 {
@@ -69,10 +56,7 @@ public sealed class CatalogAssertions
     /// <summary>Asserts a named product is displayed.</summary>
     public Task ShouldDisplayProductAsync(string productName) => _catalog.ShouldDisplayProductAsync(productName);
 
-    /// <summary>
-    /// Reads the displayed products as plain records, for tests that need to assert on the data
-    /// rather than on the rendering.
-    /// </summary>
+    /// <summary>Reads displayed products as records, for asserting on data rather than rendering.</summary>
     public async Task<IReadOnlyList<Product>> GetVisibleProductsAsync()
     {
         var products = await _catalog.GetVisibleProductsAsync();

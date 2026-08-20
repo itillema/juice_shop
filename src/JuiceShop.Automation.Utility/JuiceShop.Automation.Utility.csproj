@@ -1,11 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    UTILITY — ISTQB CTAL-TAE 2016 section 3.1.6 (configuration management of a TAS) plus the
-    data-derivation slice of the Test Generation capability (section 3.1.2).
+    UTILITY — the framework: configuration, logging, DI, artifacts, run lifecycle, driver, bases.
 
-    This project has NO ProjectReference to any other layer, by design: it is the bottom of the
-    dependency graph and must stay reusable across SUTs.
+    NO ProjectReference to any layer, by design — the bottom of the graph, with nothing specific to
+    Juice Shop in it. Where it needs an integration it declares a port (Sut/ISutReadinessGate.cs)
+    and lets Adaptation supply the adapter. It does bind to NUnit, so "reusable" means reusable in
+    another NUnit solution.
   -->
 
   <PropertyGroup>
@@ -13,6 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Playwright" />
     <PackageReference Include="Microsoft.Extensions.Configuration" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
@@ -26,8 +28,8 @@
     <PackageReference Include="Serilog.Extensions.Logging" />
     <PackageReference Include="Serilog.Sinks.Console" />
     <PackageReference Include="Serilog.Sinks.File" />
-    <PackageReference Include="Bogus" />
-    <!-- NUnit is referenced only for TestContext, which the log sink writes into. -->
+    <PackageReference Include="Allure.NUnit" />
+    <!-- NUnit for TestContext (log sink, artifact naming) and the [SetUp]/[TearDown] base class. -->
     <PackageReference Include="NUnit" />
   </ItemGroup>
 
