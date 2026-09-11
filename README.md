@@ -170,10 +170,18 @@ AUTOMATION__BROWSER__SKIPBROWSERINSTALL=true          # browsers already present
 AUTOMATION__ARTIFACTS__CAPTURETRACE=false             # also CAPTURESCREENSHOT, CAPTUREVIDEO
 ```
 
-Settings are bound and resolved at run start, so an override that cannot bind — a word where an
-integer belongs — fails before the first test, naming the offending key. The data annotations on the
-nested sections are weaker than they look: `ValidateDataAnnotations` does not recurse into them, so
-`AUTOMATION__BROWSER__NAME=safari` binds happily and fails only when the browser launches.
+Settings bind to a validated object, so an override that breaks a stated rule fails before the first
+test rather than halfway through a run, and the message names the key to go and change:
+
+```
+Automation:Sut:BaseUrl: BaseUrl must be an http or https URL with a host, e.g. http://127.0.0.1:3000.;
+Automation:Browser:Name: Browser must be chromium, firefox or webkit.
+```
+
+Validation is recursive and covers every section, which the stock `ValidateDataAnnotations` does not
+— it checks the root object only. It checks the shape of a value, not its truth: a well-formed
+`Automation:Sut:HealthPath` pointing at a route that answers 200 for everything, or a malformed entry
+in `Automation:Browser:SessionCookies`, still surfaces inside a test. See `AutomationSettingsValidator`.
 
 Note `Automation:Browser:SessionCookies`. Three cookies are seeded into every session before its
 first navigation: two dismiss the welcome dialog and cookie banner that otherwise swallow the first

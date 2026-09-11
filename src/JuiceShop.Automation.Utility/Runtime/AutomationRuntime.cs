@@ -44,7 +44,11 @@ public static class AutomationRuntime
             ValidateScopes = true,
         });
 
-        // ValidateOnStart only fires once something resolves the options.
+        // ValidateOnStart registers an IStartupValidator that only an IHost would invoke, and a test
+        // run has no host — so the run lifecycle invokes it. Resolving the options below would also
+        // validate; this says so outright rather than leaving it to a side effect of the log line.
+        _services.GetRequiredService<IStartupValidator>().Validate();
+
         var settings = _services.GetRequiredService<IOptions<AutomationSettings>>().Value;
 
         // Artifacts must describe this run and only this run.
