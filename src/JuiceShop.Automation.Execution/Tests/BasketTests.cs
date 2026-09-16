@@ -5,8 +5,7 @@ namespace JuiceShop.Automation.Execution.Tests;
 
 /// <summary>Shopping basket management.</summary>
 /// <remarks>
-/// Each test registers its own account: the seeded customers ship with items already in their
-/// baskets. See docs/architecture.md — "Test isolation".
+/// Each test registers its own account: the seeded customers ship with items already in their baskets.
 /// </remarks>
 [TestFixture]
 [Category(TestCategories.Basket)]

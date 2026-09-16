@@ -9,8 +9,7 @@ namespace JuiceShop.Automation.Adaptation.Sut;
 
 /// <summary>Establishes SUT readiness over HTTP.</summary>
 /// <remarks>
-/// Deliberately redundant with the Compose healthcheck, which says nothing about a container started
-/// by other means or a remote environment. See docs/adr/0004.
+/// Deliberately redundant with the Compose healthcheck, which says nothing about a container started by other means or a remote environment. See docs/adr/0004.
 /// </remarks>
 public sealed class HttpSutReadinessGate : ISutReadinessGate
 {

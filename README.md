@@ -1,8 +1,8 @@
 # OWASP Juice Shop — UI Test Automation
 
-A UI end-to-end automation solution built on NUnit and Playwright for .NET 10, structured as a four-layer gTAA test automation architecture, testing a containerised instance of [OWASP Juice Shop](https://owasp.org/www-project-juice-shop/).
+A UI end-to-end automation solution built on NUnit and Playwright for .NET 10, structured as a four layer gTAA test automation architecture, testing a containerised instance of [OWASP Juice Shop](https://owasp.org/www-project-juice-shop/).
 
-The system under test is pinned by image digest and every NuGet version is pinned centrally, so a
+The SUT is pinned by image digest and every NuGet version is pinned centrally, so a
 clone of this repository runs against the same application, with the same dependencies, today and in
 a year.
 
@@ -13,13 +13,11 @@ docker compose up -d --wait     # blocks on the healthcheck: ~10-15s warm, 20-60
 dotnet test
 ```
 
-That's the whole setup. No PowerShell 7, Node.js, nor global tools. The configured browser installs
-itself on first run through Playwright's .NET API, which is what keeps `playwright.ps1` — and the
-separate PowerShell 7 download it needs — out of the picture.
+That's the whole setup. No PowerShell, Node.js, nor global tools. The configured browser installs
+itself on first run through Playwright's .NET API, which is what keeps `playwright.ps1` and the
+separate PowerShell download it needs out of the picture.
 
-**Prerequisites:** Docker with Compose v2, and a .NET 10 SDK. `global.json` asks for 10.0.100 and
-rolls forward within 10.0.x. A first run also pulls the image — 116 MB over the wire, 338 MB on
-disk — and Juice Shop re-seeds its SQLite database on every boot, which is what the wait is for.
+**Prerequisites:** Docker with Compose v2, and a .NET 10 SDK. A first run also pulls the image, which is 116 MB over the wire and 338 MB on disk, and Juice Shop reseeds its SQLite db on every boot, which is what the wait is for.
 
 ---
 
@@ -40,11 +38,11 @@ disk — and Juice Shop re-seeds its SQLite database on every boot, which is wha
 
 Four layers, each a separate .NET project.
 
-| Layer | Owns | In this repository |
+| Layer | Owns | In this layer |
 |---|---|---|
-| **Execution** | The test cases | Fixtures, categories, `JuiceShopTest`, the architecture rules, and `GlobalSetup` — the composition root. `appsettings.json` ships here too |
+| **Execution** | The test cases | Fixtures, categories, `JuiceShopTest`, the architecture rules, and `GlobalSetup`, the composition root. `appsettings.json` ships here too |
 | **Definition** | What the SUT is, and how an action is performed against it | `Pages/` page objects and contracts, `Flows/` business actions and assertion facades, `TestData/` credentials and generators |
-| **Adaptation** | Non-browser connections to anything outside the test system | One HTTP readiness probe today. This is the seam where an API client, a data store or a queue probe would land |
+| **Adaptation** | Non-browser connections to anything outside the test system | One HTTP readiness probe. This is the seam where an API client, a data store or a queue probe would land |
 | **Utility** | The framework itself | Configuration, logging, DI wiring, artifact capture and reporting paths, run lifecycle, the Playwright driver, `E2ETestBase`, and the ports it declares |
 
 ```
@@ -241,27 +239,23 @@ exactly as the readiness gate does, and require no change to the driver or the t
 
 Juice Shop is an intentionally vulnerable application. A few consequences shaped this solution:
 
-- **Bound to `127.0.0.1`**, never `0.0.0.0`. Publishing it to your LAN would be a genuine risk.
-- **`safetyMode: auto`** is pinned explicitly in the overlay — the image's own default, rather than
-  the `disabled` that `NODE_ENV=unsafe` and `ctf` set — so the app auto-detects the container and the
-  genuinely destructive challenges stay disabled.
-- The image is **distroless** — no shell, no curl — so the compose healthcheck invokes the bundled
+- **Bound to `127.0.0.1`**, never `0.0.0.0`. Publishing it to a LAN would be a genuine risk.
+- **`safetyMode: auto`** is pinned explicitly in the overlay, which the image's own default, rather than the `disabled` that `NODE_ENV=unsafe` and `ctf` set, so the app auto-detects the container and the destructive challenges stay disabled.
+- The image is **distroless** — no shell, no curl, so the compose healthcheck invokes the bundled
   Node binary directly. A `CMD-SHELL curl` healthcheck fails 100% of the time.
-- The app **drops and re-seeds its database on every boot**, so `docker compose restart` is a full
+- The app **drops and reseeds its database on every boot**, so `docker compose restart` is a full
   state reset and no data volume is needed.
 - Tests that create state **register their own account** — all six basket tests and the registration
-  journey — so the suite can run repeatedly against the same container. Several of the seeded users ship
-  with items already in their baskets. The sign-in and sign-out tests deliberately reuse the seeded
-  `jim@juice-sh.op`, which is safe because they assert only on session state.
+  journey, so the suite can run repeatedly against the same container. Several of the seeded users ship with items already in their baskets. The sign-in and sign-out tests deliberately reuse the seeded `jim@juice-sh.op`, which is safe because they assert only on session state.
 
 ---
 
 ## Documentation
 
-- [docs/architecture.md](docs/architecture.md) — the full rationale: the layering, the dependency
+- [docs/architecture.md](docs/architecture.md) - the full rationale: the layering, the dependency
   cycle and how it is broken, the synchronisation patterns that made the suite trustworthy, and test
   isolation.
-- [docs/adr/](docs/adr/) — five ADRs recording each decision and the alternatives rejected.
+- [docs/adr/](docs/adr/) - five ADRs recording each decision and the alternatives rejected.
 
 ---
 

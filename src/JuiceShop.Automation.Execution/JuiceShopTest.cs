@@ -10,8 +10,7 @@ namespace JuiceShop.Automation.Execution;
 
 /// <summary>Base for Juice Shop test cases. Exposes the business-action facade and nothing else.</summary>
 /// <remarks>
-/// The seam between framework and application: <see cref="E2ETestBase"/> knows sessions and
-/// artifacts, this adds <see cref="Shop"/>. <c>[AllureNUnit]</c> here so no fixture must remember it.
+/// The seam between framework and application: <see cref="E2ETestBase"/> knows sessions and artifacts, this adds <see cref="Shop"/>. <c>[AllureNUnit]</c> here so no fixture must remember it.
 /// </remarks>
 [AllureNUnit]
 public abstract class JuiceShopTest : E2ETestBase
