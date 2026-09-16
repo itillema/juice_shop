@@ -10,6 +10,7 @@ permissions:
   contents: read # the report is deployed as a Pages artifact, so nothing writes to the repo
   checks: write # test-reporter's check run
   pull-requests: write # test summary comment
+  actions: read # read the previous run's report-history artifact
   # pages/id-token write are scoped to the deploy job rather than granted workflow-wide.
 
 concurrency:
@@ -105,15 +106,35 @@ jobs:
       # poison the branch-publishing step.
 
       # A Pages deployment replaces the whole site, so the previous site is the only carrier of the
-      # run archive and the trend history. It round-trips through the cache instead of a branch. The
-      # run-scoped key can never hit; restore-keys picks up the newest previous entry.
-      - name: Restore previous report history
+      # run archive and the trend history. It round-trips through a 90-day artifact rather than a
+      # branch or the cache (which evicts after 7 idle days).
+      #
+      # `name=` filters the listing server-side; the jq select repeats the name so a silently dropped
+      # query parameter cannot match some other artifact, and sort_by makes the newest-first ordering
+      # explicit rather than assumed.
+      - name: Find the last published report history
+        id: history
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        uses: actions/cache/restore@v6
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # jq emits one id per match, newest first, so head picks the newest and "no match" is just
+          # no output - nothing to null-guard. `|| true` because a lookup that cannot resolve must not
+          # turn a green suite red: the trends restart, the report itself does not depend on this.
+          run_id=$(gh api "repos/${{ github.repository }}/actions/artifacts?name=allure-history&per_page=100" \
+            --jq '.artifacts | map(select(.name == "allure-history" and .expired == false and .workflow_run.head_branch == "main")) | sort_by(.created_at) | reverse | .[].workflow_run.id' \
+            | head -n 1) || true
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "Carrying report history forward from run: ${run_id:-none, starting fresh}"
+
+      - name: Restore previous report history
+        if: ${{ !cancelled() && steps.history.outputs.run_id != '' }}
+        uses: actions/download-artifact@v7
         with:
+          name: allure-history
           path: allure-history-prev
-          key: allure-history-${{ github.run_id }}
-          restore-keys: allure-history-
+          run-id: ${{ steps.history.outputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Allure report
         id: allure
@@ -134,19 +155,18 @@ jobs:
         with:
           path: allure-history
 
-      # Has to be a copy to a second path: the report action copies gh_pages INTO allure_history, and
-      # pointing both at one directory would make that a self-copy. allure-history is root-owned
-      # (Docker action), which is fine — it is only ever read from here.
-      - name: Stage this run's site as the next run's history
+      # An artifact stores the directory's CONTENTS, so the next run unpacks it straight into
+      # allure-history-prev and no staging copy is needed. allure-history is root-owned (the report
+      # action is a Docker action), which is fine — it is only ever read from here.
+      # 90 days is this repository's retention ceiling; `error` catches a silently empty report.
+      - name: Publish report history for the next run
         if: ${{ !cancelled() && github.ref == 'refs/heads/main' && steps.allure.outcome == 'success' }}
-        run: rm -rf allure-history-prev && cp -r allure-history allure-history-prev
-
-      - name: Save report history
-        if: ${{ !cancelled() && github.ref == 'refs/heads/main' && steps.allure.outcome == 'success' }}
-        uses: actions/cache/save@v6
+        uses: actions/upload-artifact@v7
         with:
-          path: allure-history-prev
-          key: allure-history-${{ github.run_id }}
+          name: allure-history
+          path: allure-history
+          retention-days: 90
+          if-no-files-found: error
 
   # Separate job so that pages/id-token write and the github-pages environment stay off the job that
   # runs the tests and the SUT.
