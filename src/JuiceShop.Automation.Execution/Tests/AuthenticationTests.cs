@@ -47,8 +47,7 @@ public sealed class AuthenticationTests : JuiceShopTest
     [Description("A brand new account can be registered and immediately used to sign in.")]
     public async Task New_Customer_Can_Register_And_Sign_In()
     {
-        // A fresh account per run, rather than a shared seeded one. That is what lets the suite run
-        // repeatedly against the same container without a reset between runs.
+        // A fresh account per run, rather than a shared seeded one. Allows the suite run repeatedly against the same container without a reset between runs.
         var account = NewAccount();
 
         await Shop.RegisterAndLoginAsync(account);

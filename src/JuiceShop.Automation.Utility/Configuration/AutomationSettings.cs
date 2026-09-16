@@ -27,7 +27,9 @@ public sealed class SutSettings
 {
     /// <summary>Host-to-container, or <c>http://juice-shop:3000</c> from inside the compose network.</summary>
     [Required]
-    [Url]
+    [RegularExpression(
+        @"^https?://[^/\s]+(/\S*)?$",
+        ErrorMessage = "BaseUrl must be an http or https URL with a host, e.g. http://127.0.0.1:3000.")]
     public string BaseUrl { get; init; } = "http://127.0.0.1:3000";
 
     /// <summary>Readiness probe. Not <c>/rest/user/whoami</c>, which returns 200 before seeding finishes.</summary>

@@ -4,6 +4,7 @@ using JuiceShop.Automation.Utility.Driver;
 using JuiceShop.Automation.Utility.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Serilog.Extensions.Logging;
@@ -26,12 +27,16 @@ public static class UtilityServiceCollectionExtensions
 
         services.AddSingleton(configuration);
 
-        // ValidateOnStart turns a malformed appsettings.json into an immediate, readable failure.
+        // Turns a malformed appsettings.json, or a nonsense environment override, into an immediate
+        // and readable failure. NOT ValidateDataAnnotations(): it validates the root object only, so
+        // every attribute on the nested sections would go unchecked. See AutomationSettingsValidator.
         services
             .AddOptions<AutomationSettings>()
             .Bind(configuration.GetSection(AutomationSettings.SectionName))
-            .ValidateDataAnnotations()
             .ValidateOnStart();
+
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IValidateOptions<AutomationSettings>, AutomationSettingsValidator>());
 
         services.AddSingleton(provider => new ArtifactPathProvider(
             provider.GetRequiredService<IOptions<AutomationSettings>>(),
