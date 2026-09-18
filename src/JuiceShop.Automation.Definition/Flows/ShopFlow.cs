@@ -8,9 +8,7 @@ namespace JuiceShop.Automation.Definition.Flows;
 
 /// <summary>The business-action facade that test cases are written against.</summary>
 /// <remarks>
-/// A journey in the vocabulary of the shop, not the browser. Page objects are built here from the
-/// session rather than resolved, which keeps them internal and out of a test's reach.
-/// See docs/adr/0003.
+/// A journey in the vocabulary of the shop, not the browser. Page objects are built here from the session rather than resolved, which keeps them internal and out of a test's reach. See docs/adr/0003.
 /// </remarks>
 public sealed class ShopFlow
 {

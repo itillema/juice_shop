@@ -2,8 +2,7 @@ namespace JuiceShop.Automation.Execution.Tests;
 
 /// <summary>Category names used to slice the suite: <c>--filter "TestCategory=Smoke"</c>.</summary>
 /// <remarks>
-/// Constants, not loose strings — a renamed category would leave a CI filter matching nothing, and
-/// a filter that matches nothing reports success.
+/// Constants, since a renamed category would leave a CI filter matching nothing, and a filter that matches nothing reports success.
 /// </remarks>
 public static class TestCategories
 {

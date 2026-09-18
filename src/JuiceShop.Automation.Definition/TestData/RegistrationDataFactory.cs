@@ -12,8 +12,7 @@ public sealed record RegistrationData(string Email, string Password, string Secu
 
 /// <summary>Generates unique account data for tests that need their own user.</summary>
 /// <remarks>
-/// Registering fresh beats sharing a seeded account: it is order-independent and parallel-safe.
-/// See docs/architecture.md — "Test isolation".
+/// Registering fresh beats sharing a seeded account: it is order-independent and parallel-safe. See docs/architecture.md — "Test isolation".
 /// </remarks>
 public sealed class RegistrationDataFactory
 {

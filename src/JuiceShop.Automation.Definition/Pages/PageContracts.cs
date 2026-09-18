@@ -10,8 +10,7 @@ internal sealed record BasketLine(string ProductName, int Quantity);
 
 /// <summary>The login page at <c>/#/login</c>.</summary>
 /// <remarks>
-/// Every contract exposes its own assertions, keeping auto-retrying <c>Expect</c> where the locators
-/// are. See docs/architecture.md — "Assert through the layer that owns the locator".
+/// Every contract exposes its own assertions, keeping auto-retrying <c>Expect</c> where the locators are. See docs/architecture.md — "Assert through the layer that owns the locator".
 /// </remarks>
 internal interface ILoginPage
 {
@@ -22,8 +21,7 @@ internal interface ILoginPage
     Task SignInAsync(Credentials credentials, CancellationToken cancellationToken = default);
 
     /// <summary>Waits until a successful sign-in has taken effect.</summary>
-    /// <remarks>Separate from <see cref="SignInAsync"/>: negative tests must not wait for an
-    /// authentication that will never arrive.</remarks>
+    /// <remarks>Separate from <see cref="SignInAsync"/>: negative tests must not wait for an authentication that will never arrive.</remarks>
     Task WaitForSignInToCompleteAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Follows the "Not yet a customer?" link to registration.</summary>

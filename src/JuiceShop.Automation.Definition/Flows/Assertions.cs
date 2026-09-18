@@ -4,9 +4,7 @@ namespace JuiceShop.Automation.Definition.Flows;
 
 /// <summary>Domain-language assertions about the shopping basket.</summary>
 /// <remarks>
-/// All a test case is allowed to see: page contracts are internal, so a public property returning
-/// one would not compile. Forwarding is thin by design — the auto-retrying assertions stay with the
-/// locators, and this adds only vocabulary.
+/// All a test case is allowed to see: page contracts are internal, so a public property returning one would not compile. Forwarding is thin by design, the auto-retrying assertions stay with the locators, and this adds only vocabulary.
 /// </remarks>
 public sealed class BasketAssertions
 {

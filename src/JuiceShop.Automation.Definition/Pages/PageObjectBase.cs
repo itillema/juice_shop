@@ -30,9 +30,7 @@ internal abstract class PageObjectBase
 
     /// <summary>Opens a Material overlay, retrying a swallowed first click.</summary>
     /// <remarks>
-    /// Material components pass every actionability check before their own click handling is armed,
-    /// so the first click can be lost silently. Retries an interaction, not an assertion — if the
-    /// overlay never opens the test still fails. See docs/architecture.md.
+    /// Material components pass every actionability check before their own click handling is armed, so the first click can be lost silently. Retries an interaction, not an assertion — if the overlay never opens the test still fails. See docs/architecture.md.
     /// </remarks>
     /// <param name="trigger">The control that opens the overlay.</param>
     /// <param name="overlayContent">An element that exists only once the overlay is open.</param>
@@ -75,9 +73,7 @@ internal abstract class PageObjectBase
 
     /// <summary>Clicks a control and waits for the request it triggers to come back.</summary>
     /// <remarks>
-    /// A page object that returns as soon as the click lands is lying about what it did. Any status
-    /// is accepted — a rejected login is a legitimate outcome; asserting on it is the caller's job.
-    /// See docs/architecture.md.
+    /// A page object that returns as soon as the click lands is lying about what it did. Any status is accepted — a rejected login is a legitimate outcome; asserting on it is the caller's job. See docs/architecture.md.
     /// </remarks>
     /// <returns>The matched response, so the caller can assert on its status.</returns>
     protected async Task<IResponse> ClickAndAwaitResponseAsync(ILocator control, string urlFragment, params string[] methods)
@@ -92,9 +88,7 @@ internal abstract class PageObjectBase
 
     /// <summary>Locates a product card by the name it displays.</summary>
     /// <remarks>
-    /// By name, not index, so the tests survive a catalogue reorder. <c>app-product</c> rather than
-    /// <c>.product</c> (which appears twice per card) or <c>mat-card</c> (which matches the
-    /// empty-state card).
+    /// By name, not index, so the tests survive a catalogue reorder. <c>app-product</c> rather than <c>.product</c> (which appears twice per card) or <c>mat-card</c> (which matches the empty-state card).
     /// </remarks>
     protected ILocator ProductTile(string productName) =>
         Page.Locator("app-product").Filter(new LocatorFilterOptions { HasTextString = productName });

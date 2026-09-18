@@ -5,8 +5,7 @@ namespace JuiceShop.Automation.Definition.DependencyInjection;
 
 /// <summary>Registers the Definition layer.</summary>
 /// <remarks>
-/// Test data only. Page objects are built per-session by <see cref="Flows.ShopFlow"/>; keeping them
-/// out of the container is what stops a test case resolving one.
+/// Test data only. Page objects are built per-session by <see cref="Flows.ShopFlow"/>; keeping them out of the container is what stops a test case resolving one.
 /// </remarks>
 public static class DefinitionServiceCollectionExtensions
 {
