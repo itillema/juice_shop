@@ -22,7 +22,7 @@ point.
 
 | Layer | Responsibility | Contents here |
 |---|---|---|
-| **Execution** | The test cases | `Tests/` fixtures, `TestCategories`, `Architecture/` rules, `JuiceShopTest`, `GlobalSetup`, `appsettings.json`, `allureConfig.json` |
+| **Execution** | The test cases/scripts | `Tests/` fixtures, `TestCategories`, `Architecture/` rules, `JuiceShopTest`, `GlobalSetup`, `appsettings.json`, `allureConfig.json` |
 | **Definition** | What the SUT is and how a business action is performed against it | `Pages/` page objects and contracts, `Flows/` business actions and assertion facades, `TestData/` credentials and generators |
 | **Adaptation** | Connections to everything outside the test system — external services, protocols, integrations, data stores | `Sut/HttpSutReadinessGate` |
 | **Utility** | The framework | `Driver/` Playwright session and browser lifecycle, `Runtime/` run lifecycle and DI machinery, `Artifacts/` capture and reporting paths, `Configuration/`, `Logging/`, `Testing/E2ETestBase`, `Sut/ISutReadinessGate` |

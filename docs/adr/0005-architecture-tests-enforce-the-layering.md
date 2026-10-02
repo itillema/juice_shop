@@ -1,7 +1,5 @@
 # ADR-0005: Enforce the layering with architecture tests
 
-**Status:** Accepted
-
 ## Context
 
 Separate projects give real enforcement, but not complete enforcement. MSBuild rejects circular
@@ -14,7 +12,7 @@ neither catches:
 - A Playwright type leaking through the Definition layer's public API, which would couple every test
   to the automation technology.
 
-A rule that exists only in a README drifts from the code within a few sprints.
+A rule that exists only in a README drifts from the code within a few sprints, if work continues.
 
 ## Decision
 
