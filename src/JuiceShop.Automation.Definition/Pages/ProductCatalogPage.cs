@@ -28,8 +28,7 @@ internal sealed class ProductCatalogPage : PageObjectBase, IProductCatalogPage
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(searchTerm);
 
-        // The control stays expanded after a search, so expanding unconditionally works once and
-        // hangs on every later search in the session.
+        // The control stays expanded after a search, so expanding unconditionally works once and hangs on every later search in the session.
         if (!await SearchInput.IsVisibleAsync())
         {
             await Expect(SearchToggle).ToBeVisibleAsync(VisibleOptions);
@@ -40,8 +39,7 @@ internal sealed class ProductCatalogPage : PageObjectBase, IProductCatalogPage
         await SearchInput.FillAsync(searchTerm);
         await SearchInput.PressAsync("Enter");
 
-        // Results are replaced in place, so there is no load event — the query landing in the URL
-        // is the signal that the search was dispatched.
+        // Results are replaced in place, so there is no load event — the query landing in the URL is the signal that the search was dispatched.
         await Page.WaitForURLAsync(
             url => url.Contains("/search", StringComparison.OrdinalIgnoreCase)
                 && url.Contains('q', StringComparison.OrdinalIgnoreCase));
@@ -87,8 +85,7 @@ internal sealed class ProductCatalogPage : PageObjectBase, IProductCatalogPage
 
     public async Task ShouldShowNoResultsAsync(CancellationToken cancellationToken = default)
     {
-        // Both, because each alone is weak: an empty-state card still renders, and the message
-        // element exists in the DOM before it is relevant.
+        // Both, because each alone is weak: an empty-state card still renders, and the message element exists in the DOM before it is relevant.
         await Expect(ProductCards).ToHaveCountAsync(
             0, new LocatorAssertionsToHaveCountOptions { Timeout = ExpectTimeout });
         await Expect(NoResultsText).ToBeVisibleAsync(VisibleOptions);
@@ -99,9 +96,7 @@ internal sealed class ProductCatalogPage : PageObjectBase, IProductCatalogPage
 
     /// <summary>Clicks a card's add button and waits for the basket write to complete.</summary>
     /// <remarks>
-    /// Navigating without waiting races the request — the badge updates optimistically while the
-    /// basket renders empty. POST adds a new product, PUT bumps an existing one, so both are
-    /// accepted. See docs/architecture.md.
+    /// Navigating without waiting races the request — the badge updates optimistically while the basket renders empty. POST adds a new product, PUT bumps an existing one, so both are accepted. See docs/architecture.md.
     /// </remarks>
     private async Task AddCardToBasketAsync(ILocator card)
     {
@@ -114,8 +109,7 @@ internal sealed class ProductCatalogPage : PageObjectBase, IProductCatalogPage
         if (!response.Ok)
         {
             throw new InvalidOperationException(
-                $"Adding to the basket failed with HTTP {response.Status} ({response.StatusText}). " +
-                "A 401 indicates the sign-in had not taken effect before this action.");
+                $"Adding to the basket failed with HTTP {response.Status} ({response.StatusText}). A 401 indicates the sign-in had not taken effect before this action.");
         }
     }
 

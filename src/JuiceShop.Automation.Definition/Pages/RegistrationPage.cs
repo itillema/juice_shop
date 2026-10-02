@@ -45,8 +45,7 @@ internal sealed class RegistrationPage : PageObjectBase, IRegistrationPage
 
         var response = await ClickAndAwaitResponseAsync(SubmitButton, "/api/Users", "POST");
 
-        // No legitimate failure here — a non-success status means the account does not exist.
-        // Failing now names the cause instead of surfacing two steps later.
+        // No legitimate failure here — a non-success status means the account does not exist. Failing now names the cause instead of surfacing two steps later.
         if (!response.Ok)
         {
             var body = await response.TextAsync();
@@ -55,8 +54,7 @@ internal sealed class RegistrationPage : PageObjectBase, IRegistrationPage
                 $"({response.StatusText}). Response body: {body}");
         }
 
-        // The app routes itself to login on success. Returning before that hands the caller a page
-        // about to be replaced, and Angular discards whatever it typed. See docs/architecture.md.
+        // The app routes itself to login on success. Returning before that hands the caller a page about to be replaced, and Angular discards whatever it typed. See docs/architecture.md.
         await Expect(SubmitButton).ToHaveCountAsync(
             0, new LocatorAssertionsToHaveCountOptions { Timeout = ExpectTimeout });
     }
@@ -69,9 +67,7 @@ internal sealed class RegistrationPage : PageObjectBase, IRegistrationPage
 
     /// <summary>Picks a security question from the Material select.</summary>
     /// <remarks>
-    /// The arrow wrapper, not the select: the floating label sits over the control's hit area and
-    /// intercepts pointer events. See docs/architecture.md — "Prefer the accessible path".
-    /// Options render into a CDK overlay on the body, so they are located from the page root.
+    /// The arrow wrapper, not the select: the floating label sits over the control's hit area and intercepts pointer events. See docs/architecture.md — "Prefer the accessible path". Options render into a CDK overlay on the body, so they are located from the page root.
     /// </remarks>
     private async Task SelectFirstSecurityQuestionAsync()
     {

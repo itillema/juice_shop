@@ -34,8 +34,7 @@ internal sealed class LoginPage : PageObjectBase, ILoginPage
         await EmailField.FillAsync(credentials.Email);
         await PasswordField.FillAsync(credentials.Password);
 
-        // Angular can re-render this form out from under the fill, emptying it and turning sign-in
-        // into a 401 that looks like bad credentials.
+        // Angular can re-render this form out from under the fill, emptying it, and turning sign-in into a 401 that looks like bad credentials.
         await Expect(EmailField).ToHaveValueAsync(
             credentials.Email, new LocatorAssertionsToHaveValueOptions { Timeout = ExpectTimeout });
 
@@ -45,9 +44,7 @@ internal sealed class LoginPage : PageObjectBase, ILoginPage
 
     /// <summary>Waits for the form teardown that follows the token being stored.</summary>
     /// <remarks>
-    /// The login response means the server accepted the credentials, not that Angular has attached
-    /// the token — see docs/architecture.md. Signalled by the form disappearing, not by
-    /// <c>WaitForURLAsync</c>, which never fires on Juice Shop's hash routing.
+    /// The login response means the server accepted the credentials, not that Angular has attached the token — see docs/architecture.md. Signalled by the form disappearing, not by <c>WaitForURLAsync</c>, which never fires on Juice Shop's hash routing.
     /// </remarks>
     public Task WaitForSignInToCompleteAsync(CancellationToken cancellationToken = default) =>
         Expect(SubmitButton).ToHaveCountAsync(

@@ -1,7 +1,5 @@
 # ADR-0004: Run tests on the host against a containerised, digest-pinned SUT
 
-**Status:** Accepted
-
 ## Context
 
 The suite must run identically on any machine from a fresh clone. The SUT can be containerised with

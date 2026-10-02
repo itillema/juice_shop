@@ -1,18 +1,5 @@
 # ADR-0003: Express test cases as fluent C# business actions, not Gherkin
 
-**Status:** Accepted
-
-## Context
-
-The Test Definition layer needs a vocabulary in which test cases are written. The two credible options
-are a Gherkin/BDD layer (Reqnroll, the maintained successor to the retired SpecFlow) or a fluent C#
-facade.
-
-Gherkin maps more literally onto the syllabus: `.feature` files are unambiguously "test definition",
-and step definitions are unambiguously the binding to adaptation. ISTQB v2.0 §3.1.5 also names the
-**flow model pattern** — *"an additional facade over the page object models, which stores all the user
-actions"* — which either option can implement.
-
 ## Decision
 
 A fluent C# facade (`ShopFlow`) plus assertion facades, with `[Test]` methods calling it directly.
@@ -23,9 +10,6 @@ Gherkin's value is that non-technical stakeholders read and contribute to the fe
 happens it is worth its cost. Where it does not, it is a translation layer between two audiences that
 are the same audience, and it adds a string-matched indirection between the test and the code, which
 is worse to refactor and worse to navigate.
-
-For a portfolio repository the reader is an engineer who will open a test file and judge whether it is
-readable. This is readable without a binding layer:
 
 ```csharp
 await Shop.RegisterAndLoginAsync(NewAccount());

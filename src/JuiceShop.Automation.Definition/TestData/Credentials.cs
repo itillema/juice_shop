@@ -11,8 +11,7 @@ public sealed record Credentials(string Email, string Password, string Descripti
 
 /// <summary>Accounts seeded into Juice Shop at container start.</summary>
 /// <remarks>
-/// From <c>data/static/users.yml</c> in the image, so they hold only within the pinned digest —
-/// which is why they live in one file and docker-compose.yml pins by digest.
+/// From <c>data/static/users.yml</c> in the image, so they hold only within the pinned digest, which is why they live in one file and docker-compose.yml pins by digest.
 /// </remarks>
 public static class TestUsers
 {

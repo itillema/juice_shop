@@ -10,9 +10,7 @@ namespace JuiceShop.Automation.Execution.Architecture;
 
 /// <summary>Executable specification of the layering.</summary>
 /// <remarks>
-/// Covers what the compiler cannot: which layers may know the automation technology, and whether
-/// the dependency graph still points where it is documented to. No SUT, no browser, milliseconds.
-/// See docs/adr/0005.
+/// Which layers may know the automation technology, and whether the dependency graph still points where it is documented to. No SUT, no browser, milliseconds, all since the compiler cannot confirm this directly. See docs/adr/0005.
 /// </remarks>
 [TestFixture]
 [Category(TestCategories.Architecture)]
@@ -38,9 +36,7 @@ public sealed class ArchitectureTests
     public void Utility_Depends_On_No_Other_Layer()
     {
         const string Because =
-            "The framework must stay reusable against another product. Where it needs something " +
-            "from an integration, it declares a port (see ISutReadinessGate) and lets the " +
-            "composition root supply the adapter.";
+            "The framework must stay reusable against another product. Where it needs something from an integration, it declares a port (see ISutReadinessGate) and lets the composition root supply the adapter.";
 
         AssertNoDependency(Utility, AdaptationAssembly, Because);
         AssertNoDependency(Utility, DefinitionAssembly, Because);
@@ -59,8 +55,7 @@ public sealed class ArchitectureTests
         AssertNoDependency(
             Definition,
             AdaptationAssembly,
-            "Page objects and flows must not reach an external service directly. If a flow needs " +
-            "one, route it through a port on the Utility layer so the dependency stays explicit.");
+            "Page objects and flows must not reach an external service directly. If a flow needs one, route it through a port on the Utility layer so the dependency stays explicit.");
 
         AssertNoDependency(Adaptation, ExecutionAssembly, "No layer may depend on the test cases.");
         AssertNoDependency(Definition, ExecutionAssembly, "No layer may depend on the test cases.");
@@ -70,16 +65,13 @@ public sealed class ArchitectureTests
     [Description("Test cases express intent, not browser mechanics.")]
     public void Test_Cases_Do_Not_Depend_On_Playwright()
     {
-        // This fixture is exempt: it names the namespace as string data, which an IL scan cannot
-        // tell from a real reference. Every other type stays covered.
+        // This fixture is exempt: it names the namespace as string data, which an IL scan cannot tell from a real reference. Every other type stays covered.
         AssertNoDependency(
             Types.InAssembly(Execution)
                 .That()
                 .DoNotResideInNamespace(typeof(ArchitectureTests).Namespace),
             PlaywrightNamespace,
-            "A test reached for the browser directly. Add the behaviour to a page object and expose " +
-            "it through a flow — that is the seam that keeps test cases readable and insulates them " +
-            "from changes to the application's interface.");
+            "A test reached for the browser directly. Add the behaviour to a page object and expose it through a flow, because that's the seam that keeps test cases readable and insulates them from changes to the application's interface.");
     }
 
     [Test]
@@ -88,8 +80,7 @@ public sealed class ArchitectureTests
         AssertNoDependency(
             Adaptation,
             PlaywrightNamespace,
-            "Adaptation exists for external services, protocols and data stores. Driving a browser " +
-            "is the Utility layer's driver, and page objects belong in Definition.");
+            "Adaptation exists for external services, protocols and data stores. Driving a browser is the Utility layer's driver, and page objects belong in Definition.");
 
     [Test]
     [Description("Page objects stay internal, so no test can reach a locator.")]
@@ -106,8 +97,7 @@ public sealed class ArchitectureTests
         Assert.That(
             leaked,
             Is.Empty,
-            "Page objects and their contracts must be internal to the Definition assembly. Making " +
-            "one public would let a test bypass the flow facade and drive the browser directly.");
+            "Page objects and their contracts must be internal to the Definition assembly. Making one public would let a test bypass the flow facade and drive the browser directly.");
     }
 
     [Test]
@@ -143,8 +133,7 @@ public sealed class ArchitectureTests
         Assert.That(
             offenders,
             Is.Empty,
-            "The Definition layer leaked a Playwright type through its public API, which would " +
-            "couple the test cases to the automation technology.");
+            "The Definition layer leaked a Playwright type through its public API, which would couple the test cases to the automation technology.");
     }
 
     private static bool IsPlaywrightType(Type type)

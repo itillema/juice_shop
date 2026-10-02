@@ -1,7 +1,5 @@
 # ADR-0001: Express the layering as four .NET projects
 
-**Status:** Accepted
-
 ## Context
 
 The solution is organised as a four-layer gTAA test automation architecture: Execution, Definition,
@@ -43,24 +41,7 @@ keeps ownership of the run lifecycle without referencing the layer that talks to
 This is the seam any future integration uses: an API client for test-data setup or a database fixture
 is declared as a port where it is needed, implemented in Adaptation, and bound at the top.
 
-## Alternatives considered
-
-**Folders in a single project.** Simplest, no build overhead. Rejected because it makes the
-architecture a naming convention: nothing prevents a test from constructing a page object or
-importing Playwright, and there is no mechanism that could. The whole argument would rest on reviewer
-discipline.
-
-**Utility depending on Adaptation directly**, with the readiness call inline in the run lifecycle.
-Simpler by one interface, and rejected because it inverts the point of the framework layer: Utility
-would then be unusable against a SUT reached by any means other than the one hard-coded into it, and
-it would drag an external protocol into the layer that is supposed to be product-agnostic.
-
-**Adaptation with no project references at all**, taking primitives instead of Utility's configuration
-and logging. Would make Adaptation independently reusable, at the cost of duplicating an options type
-per integration. Rejected as not paying for itself at this size, but it is the natural next step if
-the integrations ever need to ship separately.
-
-## Consequences
+## Results of the Architecture Design
 
 - MSBuild rejects circular references outright (MSB4006 / NU1108), so the direction is enforced by
   the toolchain rather than by review.

@@ -74,9 +74,6 @@ public sealed class HttpSutReadinessGate : ISutReadinessGate
         }
 
         throw new InvalidOperationException(
-            $"The system under test at {probeUrl} did not become ready within " +
-            $"{sut.ReadinessTimeoutSeconds}s (last failure: {lastFailure ?? "none recorded"}). " +
-            "Start it with `docker compose up -d --wait`, or point Automation:Sut:BaseUrl at a " +
-            "running instance.");
+            $"The system under test at {probeUrl} did not become ready within {sut.ReadinessTimeoutSeconds}s (last failure: {lastFailure ?? "none recorded"}). Start it with `docker compose up -d --wait`, or point Automation:Sut:BaseUrl at a running instance.");
     }
 }
